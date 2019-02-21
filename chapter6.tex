@@ -163,15 +163,6 @@ Gain ratio can be represented as following:
 \end{align}
 
 
-    
-
-
-
-
-% Some features are more predictive than others for calculating similarity/dis. Thus adding a feature weighting scheme improves performance since we add attach more weight to a relevant feature, which has a higher predictive power. 
-
-%After tune the classification parameters on the validation set. For the setting using 50 words, the highest accuracy corresponds to a setting with 7 nearest neighbors,  Dice coefficient as the distance metric, and gain ratio for feature weighting. When we increase the number of words per genre to 100,  we use Dice coefficient, gain ratio, and 3 nearest neighbors. 
-
 \subsection{Perplexity-Based Similarity}
 
 As the third set of methods, we turn to language modeling and use perplexity as a measure to determine the similarity, i.e., we assign test sentence to the expert which has a lower perplexity. Perplexity is calculated based on unigrams, bigrams, or trigrams.
