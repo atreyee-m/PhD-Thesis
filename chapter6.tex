@@ -1,0 +1,325 @@
+\chapter{Automated Sentence Assignment to the Domain Experts}
+
+\section{Introduction}
+
+In the previous chapter, we observed that, POS tagging and dependency parsing results can be considerably poor for out-of-domain/heterogeneous datasets. This means that a tagger/parser trained on a homogeneous dataset, e.g., Penn Treebank works reliably well on a similar dataset but fails to achieve similar results for heterogeneous datasets. I approached this problem by creating genre/domain experts using topic modeling: We use Latent Dirichlet Allocation (LDA)~\citep{Blei:2003:LDA:944919.944937,Blei:2012:PTM:2133806.2133826} for an unsupervised clustering of  sentences into topics. The assumption is that these topics correspond to genres. We also observed that the topic modeler models the split into genres in a very similar way to the original split, with error rates around 2\%. I then train one expert per topic. I.e., I train the expert on all the training sentences that were assigned to the corresponding topic. During testing, I assign test sentences to topics, which means that they are POS tagged and parsed by the corresponding expert.  I tested the approach on an artificial, heterogeneous corpus, consisting of a balanced mix of sentences from the WSJ portion of the Penn Treebank (financial news)~\citep{marcus:kim:ea:94} and from the GENIA corpus (biomedical abstracts)~\citep{tateisi:tsujii:04}. For POS tagging, there is a moderate increase in performance over a competitive baseline of training on the full training set, and a considerable increase for dependency parsing.
+
+However, in the previous chapter,  assigning test sentences to the relevant training topic experts is handled in the simplest possible way: I perform topic modeling on the combination of training and test data. Since topic modeling clusters the data but does not create a predictive model, we cannot assign sentences to topics after the initial clustering. This means that each time a new test sentence is encountered, the topic modeler is rerun to consistently determine the appropriate genres across training and test sentences. In order to avoid retraining, I propose to use similarity estimation techniques to determine which genre the test sentence belongs to. In this setup, I only create the experts once, and then assign new sentences to genres in an asynchronous fashion. 
+For a new test sentence, I evaluate the similarity of the test sentence to the sentences of a genre and then assign it to the expert with the highest similarity score. I investigate a range of different techniques, based on 1) words closely associated with a topic by the LDA, 2) $k$-nearest neighbors, or 3) perplexity models to estimate the similarity. 
+
+\atrcomments{needed?}The results indicate that for word based similarity metrics reach results very similar to the joint topic modeling approach, thus proving the feasibility of an asynchronous approach. In the case of unigram-based perplexity, parsing accuracy even surpasses the joint modeling approach.
+
+The remainder of this chapter is structured as follows: \atrcomments{TBD}
+ % The remainder of the paper is structured as follows: Section~\ref{problemstat} outlines our system architecture in greater detail, and section~\ref{relatedwork} discusses related work. In section~\ref{sim}, we describe the similarity methods, section~\ref{exptsetup} describes the setup for the experiments, and section~\ref{exptres} shows the results of our experiments.  In section~\ref{conc}, we draw conclusions and discuss future steps.
+ 
+
+
+\section{Architecture}\label{problemstat}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/approach-new.jpg}
+ \caption{Overview of the architecture of the POS tagging and parsing experts.}\label{fig:architecture}   
+ \end{figure*}
+
+
+
+%\subsection{Background}
+
+%not sure if this goes as a part of the problem statement
+
+%In (ANONYMOUS), we create domain experts for POS tagging and parsing of heterogeneous datasets. We use Latent Dirichlet Allocation (LDA)~\cite{Blei:2003:LDA:944919.944937,Blei:2012:PTM:2133806.2133826} which identifies the hidden topic structure in a document. They have treated each sentence as a document. Thus, for each sentence, there is a probability distribution of topics. The sentences are clustered into the most likely topic based on the probability for training as well as the test set. While this approach effectively clusters training and test sentences into appropriate genre expert, it requires the topic modeler to be re-executed every time it encounters a new test sentence. We explore this problem of assigning a test sentence to the genre expert by using similarity metrics. Thus, in our approach, a test sentence gets automatically assigned to the genre expert it is closest to. This asynchronous assignment of test sentences to experts eliminates the requirement to run the topic modeler for each new test sentence. 
+
+
+%\subsection{Problem description} 
+
+
+%Following our previous work, we use LDA~\cite{Blei:2003:LDA:944919.944937,Blei:2012:PTM:2133806.2133826} to generate genres and train genre experts. But then, instead of having the test sentences clustered along with the training sentences, we assign test sentences to the genres via \textit{similarity metrics}. The test sentences are consequently annotated by the corresponding genre expert. The complete architecture of our approach is shown in Figure~\ref{fig:architecture}.
+
+The training part of the process remains same as shown in figure~\ref{fig:architecture0} - LDA~\cite{Blei:2003:LDA:944919.944937,Blei:2012:PTM:2133806.2133826} is used to generate genres and train genre experts. In this chapter, I focus on the 2-topics case, which is the closest approximation for the mixed domain problem. Since in this case, we observed the best performance using hard clustering, I will use this as the base setting for similarity estimation experiments. 
+I use 2 topics as prior, parallel to the 2 domains, and assign each training sentence via hard clustering to the genre for which LDA showed the highest probability.%\footnote{We have experimented with more topics for POS tagging and shown that we reach good results when using soft clustering rather than hard clustering \cite{mukherjee-kubler-scheutz:2016:W16-63}. The same holds true for experiments within the Penn Treebank, where we model WSJ internal topics, which are less distinct in their textual characteristics, but the experts still show an improvement over a full training baseline.}.  
+I then test the different similarity metrics: I compute the similarity of a test sentence to the training sentences of the individual experts and then assign the sentence to the expert for tagging/parsing for which it has the highest similarity. I use the following similarity metrics:
+
+\begin{itemize}
+	\item Topic words from LDA: LDA does not only cluster sentences into genres, it also determines which words are highly correlated with each genre. Thus, we can utilize these words along with their probabilities for a specific genre. I sum over all genre words that we find in the sentence, weighted by their probability, and then assign the sentence to the topic that has the highest score. 
+	
+	\item $k$-nearest neighbors: There exist a wide range of metrics to calculate similarity between two feature vectors. However, since I compare a sentence to a set of genre sentences, I decided to use memory-based classification using the  $k$-nearest neighbors to classify each test sentence into the relevant class (or genre, in our case). This has the advantage over a pure similarity metric that we have a principled way of handling the comparison to a set of sentences. Additionally, I do not consider the whole search space, as I would if I used a centroid.
+		\item Perplexity: Another obvious choice for determining the similarity of a sentence to a set of sentences is language modeling.  I calculate the perplexity of a test sentence with regard to set of sentences of an expert. I then assign a sentence to the expert for which it has the lowest perplexity. 
+\end{itemize}
+
+
+
+% \section{Related Work} \label{relatedwork}
+
+% Our work cannot exactly be called domain adaptation since we automatically determine a range of genres and then train experts per genre while domain adaptation starts from a general model and adapts it to a specific genre. However, the two research questions are closely related and generally face the same problems. Our work is closest to the work by \newcite{plank2011effective} and \newcite{mcclosky:charniak:ea:10}. McClosky et al.\ address the problem of parse adaptation in the case of multiple sources. In their setting, a parser learns the domain differences and various statistics from being trained on datasets from multiple domains. Our approach is comparable to the extent that both approaches profit from a range of domains. \newcite{plank2011effective} adopt an approach where they build a highly specialized training set that is most similar to an  out-of-domain document. They create a specialized expert each time the parser encounters a new document. Our approach is more general than Plank and van Noord's in that we do not create an expert for every new document, but rather create experts per genre. In contrast,  our approach is more fine grained in that we assign individual sentences to genres rather than complete documents. \newcite{plank2011effective} use the topic distribution from LDA as features for determining the most similar training set. This is comparable to our approach of assigning test sentences to the proper genre (but not to the creation of genres). 
+
+% Domain adaptation has been studied more extensively in parsing than in POS tagging.  For POS tagging, \newcite{blitzer:mcdonald:ea:06} have a similar setup to ours, where they train on WSJ data and test on MEDLINE abstracts. They use structural correspondence learning by identifying ``frequently occurring" pivot features which can appropriately represent source as well as target domain. The problem of adapting to a new domain is compounded in cases where no adequate data from the target domain is available. Differences in annotation scheme between the source and target domain can pose additional challenges \cite{dredze2007frustratingly}. In our case, GENIA follows a similar annotation scheme as WSJ with a few differences in assigning POS  tags to names. 
+
+% Agreement based approaches and co-training have been employed for domain adaptation of POS tagging. In the agreement-based method adopted by \newcite{clark:curran:ea:03}, a Markov model tagger and a maximum entropy tagger are used. For a sentence to be included in the training set, both the taggers have to reach a unanimous decision. \newcite{sagae2007dependency} apply a similar approach but using MaxEnt and SVM to simulate an iteration of co-training. \newcite{kuebler:baucom:11} extended this further by demonstrating that an agreement in terms of word sequences rather than complete sentences is more robust and achieves better results.
+
+% In the CoNLL 2007 shared task on domain adaptation for dependency parsing, 
+% \newcite{attardi2007multilingual} adapt an error correction approach to revise mistakes caused by the base parser in the target domain. \newcite{kawahara2008learning} employ a single parser approach using a second order MST parser and combining labeled data from the known domain with unlabeled data of the new domain by simple concatenation and judging the efficacy of the resulting most reliable parses.
+% \newcite{Finkel:2009:HBD:1620754.1620842} devise a  model for dependency parsing by using a hierarchical Bayesian prior based on the  notion that different domains may have different features specific to each domain.  Instead of applying a constant prior over all the parameters,  a hierarchical Bayesian global is used. 
+
+
+
+
+\section{Similarity Estimation}\label{sim}
+   
+There are different ways of determining the similarity of a sentence to the sentences in a genre. We investigate methods based on the topic words from LDA, $k$-nearest neighbor approaches, and  perplexity.
+
+\subsection{Topic Words from LDA}
+
+
+LDA provides a list of the words most closely associated with a topic and assigns a weight to each word.  Thus, we can use the words that are highly correlated with each topic as good indicators for a sentence belonging to the genre represented by the topic. Additionally, we utilize the probabilities provided by LDA as weights to determine a word's contribution to the similarity. For this experiment, we select the top 50/100/200 words from each topic. I.e., we assume that these words can be considered to be the most representative  words in their respective domain. Then, for each sentence, we check how many of those words occur in the current sentence and add up their weights. 
+We then assign the sentence to the topic with the higher value. Since we only look at a small number of words, we have to consider the cases where a sentence does not contain any of the topic words. We resolve these cases by extending beyond the top  words and considering all the words in the training set for each genre. If there is a tie in values, we assign the sentence randomly to one of the experts. 
+\atrcomments{TBD: expand}
+
+\atrcomments{Do I need to cite knn, dice coeff, ig/gain ratio,perplexity?}
+\subsection{$k$-Nearest Neighbors}
+
+In this method, I perform $k$-nearest neighbor classification to assign test sentences to topic experts. 
+$k$-nearest neighbor is a supervised, non-parametric lazy learning algorithm. The typical steps for the algorithm is given as follows:
+
+\begin{itemize}
+    \item  The training data is stored in memory as feature vectors and associated class labels.
+    \item The value of $k$ can be determined on a validation set based on the training errors for different $k$.
+    \item For each datapoint in test, we do the following:
+    \begin{itemize}
+        \item We calculate the distance between the datapoint and each training data vector. Usually there are several metrics such as Euclidean distance, Cosine Similarity, etc.
+        \item We sort these distances and consider the top $k$ values. 
+        \item We choose the most frequent class from these and return it to be the predicted class for the test datapoint.
+    \end{itemize}
+\end{itemize}
+
+\paragraph*{$k$-Nearest Neighbors as similarity metric}
+I create a feature vector by using the top 50/100 words from each genre, as determined by LDA, and assigning the weights as values. The class label is the domain-membership, i.e., either WSJ or GENIA.
+
+The classification parameters are determined by tuning these on a validation set. The settings are shown in table~\ref{tab:parameters}. It is based on the setting which had least training/validation errors.
+
+\begin{table}[!h]
+\centering
+\begin{tabular}{c|c|c|c}
+\begin{tabular}[c]{@{}c@{}}Feature Vector\\  Size\end{tabular} & \begin{tabular}[c]{@{}c@{}}Number of\\ Nearest Neighbor\end{tabular} & Distance Metric & Feature Weighting \\ \hline
+50 & 7 & Dice Coefficient & Gain Ratio \\
+100 & 3 & Dice Coefficient & Gain Ratio \\ \hline
+\end{tabular}
+\caption{Classification parameters for $k$-nearest neighbors}
+\label{tab:parameters}
+\end{table}
+
+\paragraph*{\textit{Dice Coefficient}}
+
+Dice coefficient computes the similarity between two samples. In terms of set theory, this can be shown as:
+
+\begin{equation} \label{eq:dc}
+    DC(X,Y) ={\frac {2|X\cap Y|}{|X|+|Y|}}
+\end{equation}
+
+For language, dice coefficient can be used to calculate the number of common occurrences of character bigrams in the strings. Thus, given two strings $x$ and $y$, \ref{eq:dc} can be rewritten as:
+\begin{equation}
+    DC(x,y) = \frac{2n_{x \cap y}}{n_x + n_y}
+\end{equation}
+
+where $n_x$ is the number of character bigrams for string $x$ and $n_y$ is the number of character bigrams for string $y$.
+Since we need to measure dissimilarity/distance rather than similarity, our metric is computed as below:
+\begin{equation}
+    d(x,y) = 1 - { \frac{2n_{x \cap y}}{n_x + n_y}}
+\end{equation}
+
+\paragraph*{\textit{Gain Ratio}}
+
+In the previous paragraph, I discussed Dice Coefficient as the distance metric used in $k$-NN. However, it is a naive assumption that, all features are equally predictive of class labels. In other words, there are some features which are more informative than others. If we assume all features weigh same, we disregard this concept. Hence it is important to weigh features based on their predictive power. 
+
+One of the widely used weighting scheme is Information Gain (IG). It measures how informative a feature is, to determine the class label. It relates to entropy which measures the amount of ``randomness" or uncertainty in a probability distribution. Entropy is represented as:
+\begin{equation}
+   H(Y) = -\sum_{y \in Y}  p(y)logp(y) 
+\end{equation}
+where $Y$ is a random variable. In this case, $Y$ can be considered as set of class labels such that $y \in Y$. 
+Now, when we have the information on the value of the feature, we can compute a conditional entropy as below. 
+
+% H(Y | X) = Si p(xi) H(Y | X=xi)
+% H(C|v) = p(v) H(C|v) 
+\begin{equation}
+    H(Y|x) = \sum_{x \in X_n} p(x)H(Y|x)
+\end{equation}
+
+where $X_n$ is the value of the $n$-th feature.
+
+
+Therefore, we can define information gain as difference between the overall entropy and the entropy conditional on the value of the feature. 
+
+\begin{equation}
+    IG(Y,x) = H(Y) - H(Y|x)
+\end{equation}
+
+While it is one of the commonly used metric, information gain tends to bias towards features with greater number of values i.e., the multi-valued features. Thus, a feature which is a good indicator of class label but contains lower number of values could potentially not given enough importance in information gain. To counter this effect, gain ratio is introduced, which normalizes information gain using a value referred to as split information (SI). This measures entropy on the value of the features. Thus SI is given as:
+\begin{align}
+    SI(n) = - \sum_{x \in X_n} p(x)logp(x)
+\end{align}
+Gain ratio can be represented as following:
+\begin{align}
+    Gain\ ratio = \frac{IG(Y,x)}{SI(n)}
+\end{align}
+
+
+    
+
+
+
+
+% Some features are more predictive than others for calculating similarity/dis. Thus adding a feature weighting scheme improves performance since we add attach more weight to a relevant feature, which has a higher predictive power. 
+
+%After tune the classification parameters on the validation set. For the setting using 50 words, the highest accuracy corresponds to a setting with 7 nearest neighbors,  Dice coefficient as the distance metric, and gain ratio for feature weighting. When we increase the number of words per genre to 100,  we use Dice coefficient, gain ratio, and 3 nearest neighbors. 
+
+\subsection{Perplexity-Based Similarity}
+
+As the third set of methods, we turn to language modeling and use perplexity as a measure to determine the similarity, i.e., we assign test sentence to the expert which has a lower perplexity. Perplexity is calculated based on unigrams, bigrams, or trigrams.
+
+
+\section{Experimental Setup} \label{exptsetup}
+
+\subsection{Dataset}
+
+We create our corpus manually by combining the Wall Street Journal (WSJ)~\cite{marcus:kim:ea:94} section of the Penn Treebank and the GENIA corpus~\cite{tateisi:tsujii:04}. This gives us an artificial balanced corpus for which we know to which genre a sentence belongs.  While WSJ consists of newspaper reports, GENIA consists of biomedical abstracts from Medline.
+
+
+For the WSJ corpus, we use the POS annotation and syntactic annotations  from the treebank. The GENIA Corpus is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. We use GENIA 1.0 trees~\cite{Ohta:2002:GCA:1289189.1289260} created in the Penn Treebank format\footnote{http://nlp.stanford.edu/~mcclosky/biomedical.html}. Both treebanks are converted to dependencies using pennconverter~\cite{johansson2007a}.
+
+Following our data split in \newcite{mukherjee-kubler-scheutz:2016:W16-63,E17-1033}, we create a balanced dataset comprising 17~181 sentences from each corpus for the training set and 850 sentences for the test set. Since GENIA is rather small and since there is no standard data split for GENIA, we decided to extract the last 850 sentences for the test set, and the 850 sentences before that for the validation set. The remaining 17~181 sentences are used for training. For WSJ, we chose the same number of sentences for the training, validation,  and test set, the training sentences are selected randomly from sections 02-21 and the validation and test sentences from section 22 and 23 respectively.
+
+
+\subsection{Baselines}
+
+In \newcite{mukherjee-kubler-scheutz:2016:W16-63,E17-1033}, we have used two baseline cases: The first baseline considers the entire training set and does not employ any topic modeling. Since the topic experts have access to only a fraction of the data, a second and more comparable baseline consists of  randomly distributing  training and test sentences into sets that correspond in size to the genres. We use these baselines and add a third, which is more relevant to our current setting. In this case, we use the experts trained on the genres but then randomly assign test sentences to the experts. This allows us to gauge how important a correct assignment to the corresponding expert is. 
+
+\begin{table*}[t!]
+\centering
+\begin{tabular}{l|l|r|}
+Similarity metric & Setting & Accuracy \\ \hline
+joint LDA & & 98.94 \\ \hline
+topic words & 50 & 97.59 \\ 
+ & 100 & 97.53 \\ 
+ & 200 & 97.35 \\ \hline
+perplexity & unigrams & \textbf{99.76} \\ 
+ & bigrams & 84.71 \\  
+ & trigrams & 81.53 \\ \hline
+$k$-NN & 50 & 90.59 \\ 
+ & 100 & 91.18 \\ \hline
+\end{tabular}
+\caption{Accuracy of genre assignment for different similarity metrics.}
+\label{tab:acc:class:simmetr}
+\end{table*}
+
+
+\subsection{Topic Modeling}
+
+Probabilistic topic modeling is a class of unsupervised algorithms which detects the thematic structure in volumes of documents \cite{Blei:2012:PTM:2133806.2133826}. We use Latent Dirichlet Allocation (LDA),  a generative probabilistic model that approximates the underlying hidden topical structure of a collection of texts based on the distribution of words in the documents \cite{Blei:2003:LDA:944919.944937}.
+
+We   use   the   topic   modeling   toolkit   MALLET  \cite{McCallumMALLET}.    The  topic  modeler  in MALLET implements Latent Dirichlet Allocation  clustering  documents  into  a  predefined number of topics.
+
+\subsection{POS Tagging and Parsing}
+
+For part of speech tagging, we use the Markov model POS tagger TnT (Trigrams'n'Tags) \cite{brants:00.2}. We use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition
+frequencies).
+For the parsing experiments, we use the dependency parser of the MATE Tools\footnote{code.google.com/p/mate-tools}, a Java implementation of a graph-based parser~\cite{bohnet:2010:PAPERS}. For the parsing experiments, we use gold POS tags.
+
+
+
+\begin{table*}[!t]
+\centering
+\begin{tabular}{l|l|r|}
+Setting & Similarity metric & Accuracy \\ \hline
+full training &  & 96.69 \\ 
+random split & & 96.41 \\ 
+topic experts + random test &  & 91.36 \\ \hline
+joint LDA &   & 96.95 \\ \hline
+topic words & 50 & 96.80 \\ 
+ & 100 & 96.81 \\ 
+ & 200 & 96.81 \\ \hline
+perplexity & unigrams & \textbf{96.92} \\ 
+ & bigrams & 95.64 \\
+ & trigrams & 95.22 \\ \hline
+$k$-NN & 50 & 96.05 \\  
+ & 100 & 96.09 \\ \hline
+\end{tabular}
+
+\caption{Results for the POS tagging experiments.}
+\label{tab:overallresultspostag}
+\end{table*}
+
+
+
+\subsection{Similarity Estimation}
+
+For the $k$-nearest neighbor estimation, we use the Tilburg Memory-Based Learner (TiMBL) \cite{daelemans:zavrel:ea:10}. For the perplexity models, we derive $n$-grams  of the training experts using  Laplace smoothing, in NLTK~\cite{bird2009natural}, and compute the perplexity of the training experts to a test sentence.
+
+\subsection{Evaluation}
+
+We use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS tagging results  and the CoNLL shared task evaluation script\footnote{http://ilk.uvt.nl/conll/software/eval.pl} for evaluating the parsing results.
+
+
+\section{Experimental Results} \label{exptres}
+
+\paragraph{Genre Assignment.}
+We first investigate how well the different similarity metrics can assign the test sentences to the correct genre. I.e., we calculate accuracy in terms of whether a GENIA sentence is assigned to the GENIA genre, and a WSJ sentence to the WSJ genre.
+Table~\ref{tab:acc:class:simmetr} shows the results of classification accuracy of using different similarity estimation techniques. The reference here is the joint LDA for training and test data, with an accuracy of 98.94\%. 
+ 
+Perplexity based on unigrams reaches the highest accuracy, reaching an accuracy of 99.76\%, thus surpassing the joint LDA. Surprisingly, using bi- or trigrams instead decreases accuracy by 15-20 points absolute. We assume that this is due to data sparsity since the language model is trained on a relatively small dataset. The second highest accuracy is reached by the methods based on topic words. Here, the number of words considered does not seem to make a significant difference. The $k$-NN approach performs at around 91\%. These results indicate that using single words without context (i.e., the context in bi- and trigrams) provides the most reliable information. The language model has an additional advantage, potentially because it can smooth over unseen words.
+  
+  \begin{table*}[t!]
+\centering
+\begin{tabular}{l|l|rr|}
+Setting &Similarity metric & LAS &UAS \\ \hline
+full training & & 88.67 & 91.71 \\ 
+random split &  & 87.84 & 90.86 \\ 
+topic experts + random test &  & 82.17 & 88.13 \\ \hline
+joint LDA & -& 90.51 & 92.14 \\ \hline
+topic words & 50 & 90.30 & 92.07 \\
+ & 100 & 90.30 & 92.07 \\
+ & 200 & 90.30 & 92.07 \\ \hline
+perplexity & unigrams & \textbf{90.54} & \textbf{92.16} \\
+ & bigrams & 88.33 & 91.13 \\
+ & trigrams & 87.50 & 90.68 \\ \hline
+$k$-NN  &50 & 89.45 & 91.82 \\
+ & 100 & 89.52 & 91.84 \\ \hline
+\end{tabular}
+\caption{Attachment scores for the dependency parsing experiments.}
+\label{tab:overallresultsdep}
+\end{table*}
+
+
+  
+\paragraph{POS Tagging.}
+Table~\ref{tab:overallresultspostag} shows the accuracies of the POS tagging experiments for different similarity metrics. We notice that assigning the test sentences randomly to genres has a detrimental effect, and we reach an accuracy of 91.36\%, which is more than 5 points absolute lower than the random split baseline. This difference shows how important it is that sentences are assigned to the correct genre.
+ 
+Perplexity based on unigrams and the method using topic words reach comparable accuracies to the original topic expert results based on the joint LDA clustering. These results follow the same trends as the genre assignment accuracies, but the differences between the methods are smaller. The perplexity setting using unigrams does not only surpass the joint LDA scores but also all the baselines: by nearly 0.3 percent points for the full training set, by 0.5 percent points  for the random split, and by 5 percent points  for the random test assignment.
+
+\begin{table*}[t!]
+\centering
+\begin{tabular}{ll|rrr|}
+ & setting & Correct genre & Incorrect genre  & Overall \\ \hline
+POS tagging (acc.) & unigram & 96.92 &  91.84 & 96.92\\
+&  topic words 50 & 98.23 & 88.59 & 96.80\\
+parsing (LAS) & unigram& 90.54& 85.72 & 90.54  \\
+& topic words 50 & 90.55 & 76.19 & 90.30\\ \hline
+\end{tabular}
+\caption{Results for POS tagging and dependency parsing when we separate incorrectly assigned sentences from correct ones.}
+\label{tab:comp}
+\end{table*}
+
+
+
+\paragraph{Dependency Parsing.}
+Table~\ref{tab:overallresultsdep} shows labeled and unlabeled attachment scores of the dependency parses. These results mirror the trends in the POS tagging experiments: Randomly assigning sentences to genres results in the lowest LAS score of 82.17\%, and using perplexity based on unigrams reaches the highest LAS of 90.54\%. This LAS is considerably higher than the full training baseline of 88.67\%. Note that the differences between the accuracies based on different similarity metrics are considerably more pronounced than in the POS tagging experiments. This mirrors the trend that we have previously seen for the joint LDA assignment. It is also interesting to see that the results for all the topic word settings are the same. This is due to 5 sentences that did not contain any of the topic words and thus had to be randomly assigned to one genre. 
+
+We now have a closer look at the two best settings, i.e., the perplexity experiment using unigrams and 50 topic words: We separate the sentences that were assigned to the wrong genre from the correctly assigned ones and evaluate them separately. For the unigram setting, 4 sentences were assigned to the wrong genre, for the 50 topic words, 41 sentences. The results are shown in Table~\ref{tab:comp}.  These results show that the sentences that were assigned to the wrong genre receive POS and dependency analyses with significantly lower accuracies, the difference to the correct ones ranging between 5 points absolute for POS tagging and 10-14 points for parsing. This corroborates our findings that the correct assignment to a genre is of utmost importance, which also corroborates our conclusion that the genre experts model genre-specific information. If they did not, mis-assigning sentences would not have any impact.
+
+\section{Discussion} \label{conc}
+
+Using topic modeling to create experts can be very beneficial, but this approach is only viable if we can assign new sentences asynchronously to genres without having to retrain the LDA to determine genres that include the new sentences. We have investigated similarity based methods for assigning the new sentences to genres.
+More specifically, we have  investigated the following methods:  1) using topic words that LDA associates with a genre, 2) $k$-nearest neighbor models, and 3) perplexity in language models. A baseline that assigns test sentences randomly to genres performs poorly, thus showing that the correct assignment to genres is indispensable.
+
+Our results show that the perplexity model  based on unigrams surpasses the accuracy of a joint LDA model that assigns the sentences synchronously.  For POS tagging, the  accuracy of the unigram perplexity model is very close to that of the joint LDA.  For parsing, the unigram perplexity model outperforms the joint LDA model.  Using the 50 topic words to assign sentences to their genre reaches accuracies close to the best performing model. This shows that word-based methods are more robust in comparison to bigram and trigram methods, which should be able to profit from more context but also face data sparsity issues.
+
+For the future, we plan to investigate models with a more dynamic mix of genres during the POS tagging and parsing process. I.e. rather than creating independent experts, we will investigate methods to create a POS tagger and parser that have access to expert views during each decision about the next POS tag or parsing step. We will also investigate whether we can integrate gold POS tags or dependency information into the topic modeling process, so that the topic modeler has access not only to the specialized lexical information but also to the linguistic information that it is ultimately tasked to distinguish. 
