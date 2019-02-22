@@ -95,9 +95,9 @@ $k$-nearest neighbor is a supervised, non-parametric lazy learning algorithm. Th
 \paragraph*{$k$-Nearest Neighbors as similarity metric}
 I create a feature vector by using the top 50/100 words from each genre, as determined by LDA, and assigning the weights as values. The class label is the domain-membership, i.e., either WSJ or GENIA.
 
-The classification parameters are determined by tuning these on a validation set. The settings are shown in table~\ref{tab:parameters}. It is based on the setting which had least training/validation errors.
+The classification parameters are determined by tuning these on a validation set. The settings are shown in table~\ref{tab:parameters}. It is based on the setting which had least training/validation errors. I explain these metrics in the next paragraphs.
 
-\begin{table}[!h]
+\begin{table}[t]
 \centering
 \begin{tabular}{c|c|c|c}
 \begin{tabular}[c]{@{}c@{}}Feature Vector\\  Size\end{tabular} & \begin{tabular}[c]{@{}c@{}}Number of\\ Nearest Neighbor\end{tabular} & Distance Metric & Feature Weighting \\ \hline
@@ -165,9 +165,62 @@ Gain ratio can be represented as following:
 
 \subsection{Perplexity-Based Similarity}
 
-As the third set of methods, we turn to language modeling and use perplexity as a measure to determine the similarity, i.e., we assign test sentence to the expert which has a lower perplexity. Perplexity is calculated based on unigrams, bigrams, or trigrams.
+As the third set of methods, I turn to language modeling and use perplexity as a measure to determine the similarity. First, I explain the concept in details followed by the implementation details for using perplexity as a similarity measure.
 
-\paragraph*{Perplexity}
+\paragraph*{Probabilistic Language Models}
+
+Language models assign probabilities to the sequence of words in a sentence~\citep{jurafsky2014speech}. It is essential to compute the most likely word that follows a sequence of words. N-gram is the simplest language model, which is a sequence of n words. We define a unigram, bigram and a trigram are sequences of one, two and three words respectively. If we consider a sentence to be a sequence of consequtive words,  $S = {w_1,w_2,...,w_n}$, the primary goal of a language model is to estimate the following:
+\begin{align}
+    P(S) = P(w_1,w_2,..w_n)
+\end{align}
+According to the chain rule of probability, we can calculate this as:
+\begin{equation}
+    \begin{aligned}
+        P(w_1,w_2,..w_n) &= P(w_1)P(w_2|w_1)P(w3|w_1,w_2) ... P(w_n|w_1,..w_{n-1})&&\\
+     &= \prod_i P(w_i|w_{1}^{i-1})&&
+    \end{aligned}
+\end{equation}
+
+So, in order to find n-th word, we can simply estimate, $P(w_n|w_{n-1}, w_{n-2}, ... w_1)$. However, estimating conditional probabilities for sequences of any length is intractable and it is also nearly impossible to see all the probable sequences in the training data. Thus, it does not generalize well. Hence, we can make the Markov assumption, i.e., the future state depends on the current state only. In terms of language, this translates as:
+\begin{align}
+    P(w_1,w_2,..w_n) \approx \prod_i P(w_i|w_{i-k}..w_{i-1})
+\end{align}
+
+For a bigram model, we can make the following approximation:
+\begin{align}
+ P(w_i|w_1,w_2,..w_{i-1}) \approx P(w_i|w_{i-1})
+\end{align}
+
+We use maximum likely estimates (MLE) to calculate these probabilities. Hence,
+\begin{align}
+    P(w_i|w_{i-1}) = \frac{Count(w_{i-1}w_i)}{Count(w_{i-1})}
+\end{align}
+
+This means that, we calculate bigram probability of a word $w_n$, given the previous word $w_{n-1}$ by counting the number of times these words appear in conjunction in our corpus, normalized by the number of times $w_{n-1}$ appears in the corpus. 
+Once we know these probabilities, it is trivial to estimate the most likely word that follows a sequence of words.  
+
+\paragraph*{Evaluation of Language models - Perplexity}
+
+There is an extrinsic evaluation method for language models, i.e., we use language model and then measure the end to end performance of a system. E.g., if we want to use language models for a machine translation system, we can judge the efficiency of using language model by simply evaluating the MT system. However, I discuss one of the widely used intrinsic evaluation method, perplexity. Perplexity is a function of probability of a sentence - it computes the inverse probability for an unseen test set, normalized by the number of words~\citep{jurafsky2014speech}. Hence, lower the perplexity, higher the probability, which implies that the model generalizes well.
+
+
+\begin{equation}
+    \begin{aligned}
+    Perplexity(S) & = P(w_1,w_2,w_3, ... , w_n)^{-\frac{1}{n}} \\
+    & = \sqrt[n]{\frac{1}{P(w_1,w_2,w_3, ... , w_n)}} \\
+    & = \sqrt[n]{\prod_{i=1}^{n}\frac{1}{P(w_i|w_1, .. w_{i-1})}} \\
+    \end{aligned}
+\end{equation}
+Thus, for bigrams, we can compute perplexity as:
+
+\begin{equation}
+    Perplexity(S) = \sqrt[n]{\prod_{i=1}^{n}\frac{1}{P(w_i|w_{i-1})}}
+\end{equation}
+    
+\paragraph*{Perplexity as a similarity metric}
+
+In the previous paragraph, we learned that perplexity can be a quick way to evaluate language models. I use perplexity as a measure to determine the similarity of a sentence to the training sentences. I have two training experts\footnote{See previous chapter for detailed explanation}, specializing in both domains in question. I calculate the perplexity of a test sentence to the experts. I then assign this test sentence to the expert which exhibits lower perplexity. I estimate unigram, bigram and trigram perplexity. 
+
 
 
 \section{Experimental Setup} \label{exptsetup}
