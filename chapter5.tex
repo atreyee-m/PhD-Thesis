@@ -1,15 +1,12 @@
 \chapter{Domain Experts via Topic Modeling}
 
+\todo[inline]{Contains research questions for the experts; experimental setup; experimental results;summary}
 
 \section{Introduction}
 
-Domain adaptation is a well studied problem in machine learning and natural language processing. Usually, there is a plenty of labeled data available for one domain (also known as the source domain) but nearly not enough or in some cases, none available from a different domain (also known as target). The challenge in that case, is to apply well performing systems from source domain and adapt it the target domain. In most problems, this results in a drop in performance, sometimes severe. The same holds true for POS tagging and dependency parsing. These systems perform well when trained and tested on datasets that are predominantly in the same text domain. However, there is a considerable decrease in accuracy if the domains under consideration, are markedly different. It is a well-studied problem for POS tagging and dependency parsing (more so for dependency parsing) but the improvement proposed by these systems have been negligible at best. This is mainly due to unavailability of annotated data from target domain. \cite{daume:07} notes that this problem is ``frustratingly easy'' when some annotated data  is available from the target domain  and ``frustratingly hard'' if no such target data is available~\citep{dredze:blitzer:ea:07}. 
+In this chapter, I address a problem which is analogous to the classic domain adaptation problem since the aim is to improve (morpho-)syntactic analysis for different domains, but more generic in nature. In order to simulate a more realistic scenario, I assume that the  dataset on which the taggers and the parsers is trained on, does not come from a single domain but may contain a mix of different domains. The same is true for the sentence that is parsed (or tagged) using the model trained on this dataset. I.e., the test sentence could potentially come from any of the domains. Thus, in my case, the problem is two fold - identify domains automatically in the training dataset and then suitably adapt the method to parse sentences more accurately. There is no manual work involved. 
 
-In this chapter, I address a problem which is analogous to this classic domain adaptation problem since the aim is to improve (morpho-)syntactic analysis for different domains, but more generic in nature. In order to simulate a more realistic scenario, I assume that the  dataset on which the taggers and the parsers is trained on, does not come from a single domain but may contain a mix of different domains. The same is true for the sentence that is parsed (or tagged) using the model trained on this dataset. I.e., the test sentence could potentially come from any of the domains. Thus, in my case, the problem is two fold - identify domains automatically in the training dataset and then suitably adapt the method to parse sentences more accurately. There is no manual work involved. 
-
-Previous work in this area have largely focused on the classic domain adaptation problem. The closest comparison to my approach is the one by \cite{plank2011effective}. However, the problem they address is creating a specialized training set for every document they need to parse. They pick sentences from the training set which are most similar to test set. Topic distribution is thus used as features for similarity metrics. My approach is a more general, because I create more general domain training ``experts". My approach also draws parallel with the work on ``multiple source parse adaptation" by \cite{mcclosky2010automatic}. In this approach the parser is trained on multiple domains and learned the statistics as well as  domain differences which affect the parser accuracy. This is similar to my approach as I create experts based on topics , and each expert learns the specifics of the particular topic with which it is associated.
-
-In this chapter, I describe my method on improving POS tagging and dependency parsing for such heterogeneous datasets from a variety of different genres by creating experts for automatically detected topics. In this case, the datasets consist of newspaper reports on the one hand and biomedical extracts on the other. I assume that the domains have an equal participation in the dataset. I use Latent Dirichlet Allocation (LDA) to determine the topic of a sentence. LDA displays the latent topic structure in a document. In this case, a document to be clustered consists of a single sentence. I then assign each sentence to the most likely topic, for both training and test sentences. I train an expert for each topic and then use this expert to POS tag and parse the test sentences belonging to this topic. I assume that the topics detected by the topic modeler do not only pertain to lexical differences, which can be beneficial for the POS tagger and the parser, but also to syntactic phenomena. Thus, one topic may focus on ``incomplete" sentences, such as headlines in a newspaper.
+I describe my method on improving POS tagging and dependency parsing for such heterogeneous datasets from a variety of different genres by creating experts for automatically detected topics. In this case, the datasets consist of newspaper reports on the one hand and biomedical extracts on the other. I assume that the domains have an equal participation in the dataset. I use Latent Dirichlet Allocation (LDA) to determine the topic of a sentence. LDA displays the latent topic structure in a document. In this case, a document to be clustered consists of a single sentence. I then assign each sentence to the most likely topic, for both training and test sentences. I train an expert for each topic and then use this expert to POS tag and parse the test sentences belonging to this topic. I assume that the topics detected by the topic modeler do not only pertain to lexical differences, which can be beneficial for the POS tagger and the parser, but also to syntactic phenomena. Thus, one topic may focus on ``incomplete" sentences, such as headlines in a newspaper.
 
 The rest of the chapter is structured in the following way: \atrcomments{TBD after completion}
 
@@ -18,13 +15,13 @@ The rest of the chapter is structured in the following way: \atrcomments{TBD aft
 
 The goal is to create POS tagging and parsing experts for heterogeneous datasets which consist of  sentences from different genres. For example, the dataset might be a mixture of newspaper articles, blogs, financial reports, research papers and even specialized texts such as biomedical research papers and law texts. I create experts such that each expert would learn specific information about its own genre. I determine these experts by performing topic modeling on sentences and then train an expert on the sentences of the topic. I group sentences based on their most probable topic. To test the hypothesis that topic modeling can serve to group sentences into topics, I create a mixed dataset from the financial domain (using the Penn Treebank \cite{marcus:kim:ea:94}) and from the biomedical domain (using the GENIA Corpus \cite{tateisi:tsujii:04}) such that the new handcrafted corpus consists of sentences from both domains in equal measure. Consequently, there is a clear difference in the genres in the corpus, and I have gold standard topic information.
 
-In this chapter, I investigate the possibility of creating genre experts, given a heterogeneous dataset. Thus, I perform topic modeling on training and test data simultaneously: I assign a test sentence to the topic with the highest probability. This means that I currently simplify the problem of assigning new sentences to topics. In the next chapter, I assign new sentences to topics based their similarity to sentences in the topics created during training, following the work by \newcite{plank2011effective}. 
+In this chapter, I investigate the possibility of creating genre experts, given a heterogeneous dataset. Thus, I perform topic modeling on training and test data simultaneously: I assign a test sentence to the topic with the highest probability. This means that I currently simplify the problem of assigning new sentences to topics. In the next chapter, I assign new sentences to topics based their similarity to sentences in the topics created during training, following the work by \citep{plank2011effective}. 
 
 To summarize, I present the results on the following research questions in this chapter.
 
 \subsection*{Question 1: Can topic modeling successfully identify genres in a dataset?} \label{q1}
 
-\atrcomments{need to remove WSJ ones for now}
+%\atrcomments{need to remove WSJ ones for now}
 
 In this question, I determine whether the data splits obtained from the topic modeler are meaningful for creating domain experts. I.e., I investigate whether an unsupervised topic modeler can detect topics in a heterogeneous corpus. I use an artificially created heterogeneous corpus containing sentences from the Wall Street Journal (WSJ) section of the Penn Treebank \citep{marcus:kim:ea:94} and  from the GENIA Corpus \citep{tateisi:tsujii:04} and take their original corpus as the gold standard topic. I assume that a good split into the known topics, financial news and biomedical abstracts, will also improve POS tagging and parsing accuracy. 
 If I assume two topics, we should be able to see a clear distinction between WSJ and GENIA sentences. I.e., for each topic, we should have a clear correspondence of its sentences to either WSJ or GENIA. I thus calculate the percentage of sentences in a given topic that belong to GENIA and expect that one topic should have a high percentage and the other one a low percentage. I also experiment with a larger number of topics, to see if I can profit from a finer grained topic definition. However, this advantage will be offset by a smaller training set since we split into more sets. 
@@ -33,20 +30,21 @@ If I assume two topics, we should be able to see a clear distinction between WSJ
 
 %\atrcomments{REMOVE} The finer grained split could also potentially identify micro-genres within a genre. I.e., the primary assumption is that - there are two very different genres and the topic modeler should be able to identify this distinction. In my case, WSJ and GENIA are representative of corpora from two very different domains - newspaper and biomedical texts. However, often the distinction between genres could be subtle. In that case, it is imperative to check if topic modeler could also identify micro-genres, in addition to the broader classification. To investigate this, I exclusively use the WSJ data set. The hypothesis is that the WSJ corpus contains different newspaper sections, which may use different styles. Since there is no information available from the Penn Treebank about those section, I cannot evaluate how well the topic modeler splits the sentences into topics, but I can evaluate whether the POS tagging/\atrcomments{parsing} experts are successful in adapting to those micro-genres.
 
-\subsection*{Question 2: How do we cluster sentences into experts?}
+% \subsection*{Question 2: How do we cluster sentences into experts?}
 
-In the previous question, I mentioned that having a finer grained split, i.e., larger number of topics could result in severe data sparseness. This is assuming that we treat topics as hard clusters, i.e., every sentence belongs to the topic with the highest probability. However, this is a simplification since a sentence can represent different topics to different degrees. This is especially true in case of identifying micro-genres or larger number of topics, in general. Thus, a potential solution is to investigate whether we can utilize the soft clustering information directly and add every sentence to every domain expert, weighted based on the degree to which it represents the topic of this expert. This not only allows us to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every expert. The risk is that I ``diffuse'' the expert knowledge too much by adding all sentences even if they are weighted. 
+% In the previous question, I mentioned that having a finer grained split, i.e., larger number of topics could result in severe data sparseness. This is assuming that we treat topics as hard clusters, i.e., every sentence belongs to the topic with the highest probability. However, this is a simplification since a sentence can represent different topics to different degrees. This is especially true in case of identifying micro-genres or larger number of topics, in general. Thus, a potential solution is to investigate whether we can utilize the soft clustering information directly and add every sentence to every domain expert, weighted based on the degree to which it represents the topic of this expert. This not only allows us to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every expert. The risk is that I ``diffuse'' the expert knowledge too much by adding all sentences even if they are weighted. 
 
-\subsection*{Question 3: Does POS Tagging Benefit from Using Topics?}
+\subsection*{Question 2: Does POS Tagging Benefit from Using Topics?}
 
 In this question, I examine whether the performance of POS tagging improves if we create experts based on the topics detected by the topic modeler. 
-In order to investigate this question, I generate a two-topic corpus by combining data from the Wall Street Journal (WSJ) section of the Penn Treebank \cite{marcus:kim:ea:94} and from the GENIA corpus \cite{tateisi:tsujii:04}. The WSJ covers financial news while GENIA uses Medline abstracts as its textual basis. As a consequence, I have sentences from two different genres, but also slight variations in the POS tagsets. The tagset used in GENIA is based on the Penn Treebank tagset, but it uses the tags for proper names and symbols only in very restricted contexts. This setup allows me to test whether the topic modeler is able to distinguish the two genres, and whether POS tagging experts can profit from this separation. I use the topics created for the previous sections and train a POS tagging expert on the training part of each topic. I then use the expert to tag the test sentences from this topic. In this setting, we can see  if the experts can effectively handle the data sparseness caused by dividing the training set into multiple experts. I experiment with one setting in which I use topic modeling as hard clustering, i.e., I assign each sentence to the topic for which the topic modeler gave the highest probability. I also experiment with soft clustering, in which I add each sentence to all topics, weighted by its probability distribution.
+In order to investigate this question, I generate a two-topic corpus by combining data from the Wall Street Journal (WSJ) section of the Penn Treebank \cite{marcus:kim:ea:94} and from the GENIA corpus \cite{tateisi:tsujii:04}. The WSJ covers financial news while GENIA uses Medline abstracts as its textual basis. As a consequence, I have sentences from two different genres, but also slight variations in the POS tagsets. The tagset used in GENIA is based on the Penn Treebank tagset, but it uses the tags for proper names and symbols only in very restricted contexts. This setup allows me to test whether the topic modeler is able to distinguish the two genres, and whether POS tagging experts can profit from this separation. I use the topics created for the previous sections and train a POS tagging expert on the training part of each topic. I then use the expert to tag the test sentences from this topic. In this setting, we can see  if the experts can effectively handle the data sparseness caused by dividing the training set into multiple experts. I experiment with one setting in which I use topic modeling as hard clustering, i.e., I assign each sentence to the topic for which the topic modeler gave the highest probability. \textcolor{red}{I could also potentially experiment with a different clustering technique - soft clustering, in which I add  each sentence to all topics, weighted by its probability distribution. I discuss these clustering techniques in more detail in the next section}
+%I also experiment with soft clustering, in which I add each sentence to all topics, weighted by its probability distribution.
 
-\subsection*{Question 4: Does Dependency Parsing Benefit from the Topics?}
+\subsection*{Question 3: Does Dependency Parsing Benefit from the Topics?}
 
 Here, I investigate the effects of using topic modeling experts for dependency parsing. I first use gold POS tags in order to abstract away from POS tagging quality. In a second step, I investigate the interaction between POS tagging and parsing experts. I.e., I am interested in whether dependency parsing can profit from using the POS tags that were determined by the POS tagging experts. This helps in determining whether integrating POS information given by the POS experts can improve dependency parsing or whether there is no interaction between the two levels.
 
-\subsection*{Question 5: What do the Experts Learn?}
+\subsection*{Question 4: What do the Experts Learn?}
 
 In this question, I take a closer look at the results from the previous question to learn where the improvements by the experts (POS tagging \& parsing) are come from. I investigate on certain known issues for both POS tagging and dependency parsing in domain adaptation situation and in general, to ascertain the source of these improvements. 
 
@@ -56,41 +54,30 @@ I also analyze the parsing results in more detail to gauge the effect of using t
 
 \section{Experimental Setup}\label{sec:setup}
 
+\subsection{Overall Architecture}
 
-\subsection{Data Sets}
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/approach.png}
+ \caption{Overview of the architecture of the POS tagging and parsing experts.}\label{fig:architecture0}   
+ \end{figure*}
 
-\atrcomments{TBD}
+Figure~\ref{fig:architecture0} shows the overall architecture of the system. 
+I use sentences as documents. Based on the document topic information, I then group the sentences into genre topics. I collect all sentences from the training and test set, cluster them via the MALLET topic modeler, and determine for which expert(s) the sentence is relevant to. There are several ways of determining the best expert based on the probability distribution of topics in a sentence. Then, we separate the sentences for each expert into training and test sentences, based on the previously determined data splits (see above).
 
-For our experiments, we use the Wall Street Journal (WSJ) section of
-the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus
-(version 3.02) \cite{tateisi:tsujii:04}. Both corpora use the Penn
-Treebank POS tagset \cite{santorini:90} with minor differences, as
-described in section \ref{sec:q1}.
+The experts can be determined based on hard or soft clustering decisions: For hard clustering, the sentences are assigned to hard topics, based on the topic that has the highest probability in that sentence. I.e., if for sentence $s_x$, MALLET lists the topic $t_1$ as the topic with the highest probability, then $s_x$ is added to the data set of topic $t_1$. In other words, the data set of topic $t_1$ consists of all sentences for which MALLET showed topic $t_1$ as the most likely topic. This means that the data set sizes vary between topics. This is a simplification since a sentence can represent different topics to different degrees. Thus, I investigate whether I can utilize the soft clustering information directly and add every sentence to every POS tagging expert, weighted based on the degree to which it represents the topic of this expert. This not only allows me to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every domain expert.
 
-For the WSJ corpus, we extract the POS annotation from the
-syntactically annotated corpus. The GENIA Corpus comprises biomedical
-abstracts from Medline, and it is annotated on different
-linguistic levels, including POS tags, syntax, coreference, and
-events, among others. We use the POS tagged version. For WSJ, we use
-the standard data split for parsing:  using sections 02-21 as training data and
-section 22 as our test set. We reserve section 23 for future 
-parsing expert experiments.
+Hence, for soft clustering experiments, I utilize the entire topic distribution of a sentence by weighting sentences in the training data based on their topic distribution. I simulate weighting training sentences by adding multiple copies to the training files of the experts. Thus, for 2-topic experiments, a sentence with 80\% probability for topic~1 will be included 8 times in the expert for topic~1 and 2 times in the expert for topic~2, rounding up small percentages so that every sentence will be added to every expert at least once.  Thus, I use a more fine grained topic model while mitigating data sparseness,  but we risk adding non-typical / irrelevant sentences to experts.
 
+\subsection{Clustering Decision}
 
+In the research questions, I outlined a setting of using a finer grained split with a larger number of topics. However, evidently, 
+%mentioned that having a finer grained split, i.e., 
+larger number of topics could result in severe data sparseness. This is assuming that I treat topics as hard clusters, i.e., every sentence belongs to the topic with the highest probability. So,creation of experts causes a sparsity in the training data because I am dividing the training set into a number of experts. For example, if I create 10 experts, I am basically dividing the training set to a fraction of 10. This essentially means that, now my training experts can only train on $\frac{1}{10}^{th}$ of the full training set. 
+This is also a simplification since a sentence can represent different topics to different degrees. This is especially true in case of identifying micro-genres or larger number of topics, in general.
+Consider the following example:
 
-\subsection{Topic Modeling}\label{sec:tm}
-
-Probabilistic topic modeling is a class of algorithms which detects
-the thematic structure in a large volume of documents. Topic modeling
-is unsupervised, i.e., it does not require annotated
-documents \cite{Blei:2012:PTM:2133806.2133826} but rather discovers similarity between documents. Latent Dirichlet
-Allocation (LDA) is one of the topic modeling algorithms. It is a
-generative probabilistic model that approximates the underlying hidden topical structure of a collection of texts based on the distribution of words in the documents \cite{Blei:2003:LDA:944919.944937}. I explain LDA in more detail below.
-
-\paragraph*{LDA} 
-
-Intuitively, Latent Dirichlet Allocation (LDA) is a method for discovering the hidden topics in a sentence. E.g., consider the following WSJ sentence. If we choose to model this in terms of LDA, we get the output shown in table~\ref{tab:2topicssent} and \ref{tab:10topicssent}.
-
+In order to represent the distinct domains (WSJ, GENIA) and also the sub-genres of a particular domain, I create 2 as well as 10 topics experts. Typically, if I consider the topic prior as 2 \& 10, the distribution looks as given in Table~\ref{tab:2topicssent} \& \ref{tab:10topicssent}~\footnote{an approximation}, for the following WSJ sentence:
 
 ``Though growers can't always keep the worm from the apple , they can protect themselves against the price vagaries of any one variety by diversifying -- into the recently imported Gala , a sweet New Zealand native ; the Esopus Spitzenburg , reportedly Thomas Jefferson's favorite apple ; disease-resistant kinds like the Liberty."
  
@@ -123,85 +110,10 @@ Intuitively, Latent Dirichlet Allocation (LDA) is a method for discovering the h
 %\caption{2 \& 10-topic probability distribution for a WSJ corpus sentence: \\ }
 %\label{tab:10t-probab}
 \end{table*}
-
-I.e., when we choose the number of topics as 2 \& 10, LDA creates a probabilistic distribution of topics in the sentence. This process of discovering topics in a document can be represented by a generative model. Each document($W$), i.e., a sentence in this case, is a mixture of topics. In other words, a sentence consists of a collection of words, i.e., $W = {w_1,w_2, ..., w_N}$. A corpus can be represented as a collection of $M$ sentences or documents, i.e., $C = {W_1, W_2, ..., W_M}$. For each sentence in a corpus, the generative steps for LDA can be given as below:
-\begin{itemize}
-    \item The number of words in a sentence i.e., $N$ is chosen from a Poisson distribution.
-    $$N \sim Poisson(\lambda)$$
-    \item The mixture of topic for a sentence is chosen according to the dirichlet distribution over a fixed set of topics.
-    $$\theta \sim Dirichlet(\alpha)$$
-    \item Each word ($w_i$) in sentence ($W$) can be generated as follows:
-    \begin{itemize}
-        \item Pick a topic according to the multinomial distribution sampled above.
-        $$Z_n \sim Multinomial(\theta)$$
-        \item Generate the word from the topic according to the multinomial distribution of topics. I.e., we choose a word from $p(w_n|Z_n, \beta)$, where $\beta$ represents word probabilities.
-    \end{itemize}
-    
-    
-\end{itemize}
-
-The inference step follows the generative step, which requires calculating the posterior distribution of the hidden variables given a sentence. 
-\atrcomments{to be finished ........}
-
-
-
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=\textwidth]{figures/LDA_plate_diagram.png}
- \caption{Graphical model for LDA~\citep{Blei:2003:LDA:944919.944937}}\label{fig:ldaplate}   
- \end{figure*}
  
- Figure~\ref{fig:ldaplate} shows the plate diagram for graphical model for LDA. Plate diagrams are standard for representing repeating entities in a graphical model for Bayesian inference. 
- 
-%https://www.seas.upenn.edu/~cis520/lectures/LDA.pdf
- 
- 
+In Table~\ref{tab:2topicssent} and~\ref{tab:10topicssent}, we can see the probability of the highest (7) and the second highest (5) topic are fairly close. Thus, if I take topic 7 and discard the other topics, I lose a fair share of information given by LDA. In other words, dividing a corpus into experts creates a significant sparsity in training data if I consider the highest probability topic and discard the rest.
+This problem can be mitigated if we effectively utilize the whole topic probability distribution by giving a sentence to more than one topic. Thus, I also investigate whether we can utilize the soft clustering information directly and add every sentence to every domain expert, weighted based on the degree to which it represents the topic of this expert. This not only allows us to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every expert. The risk is that I ``diffuse'' the expert knowledge too much by adding all sentences even if they are weighted. 
 
-
-
-\paragraph*{LDA toolkit}
-
-There are several  open sourced toolkits available for LDA. We use the topic modeling toolkit MALLET \cite{McCallumMALLET}.  The
-topic modeler in MALLET implements Latent Dirichlet Allocation (LDA), clustering
-documents into a predefined number of topics. As a result, it provides
-different types of information such as:
-
-\begin{itemize}
-	\item  Topic keys:  The highest ranked words per topic with their probabilities; 
-	
-	\item Document topics: The topic distribution for each document (i.e., the probability that a document belongs to a given topic); and 
-	
-	\item Topic state: This correlates all words and topics.
-	
-\end{itemize}
-
-
-
-%We can determine experts based on hard or soft clustering decisions: For question 1 and 3, the sentences are assigned to hard topics, based on the topic that has the highest probability in that sentence. I.e., if for sentence $s_x$, MALLET lists the topic $t_1$ as the topic with the highest probability, then $s_x$ is added to the data set of topic $t_1$. In other words, the data set of topic $t_1$ consists of all sentences for which MALLET showed topic $t_1$ as the most likely topic. This means that the data set sizes vary between topics. 
-
-%For questions 2 and 3, we utilize the entire topic distribution of a sentence by weighting sentences in the training data based on their topic distribution. Since the POS tagger does not support the weighting of training examples and since we do not have access to the code of the POS tagger, we simulate weighting training sentences by adding multiple copies to the training files of the experts. Thus, for the 2-topic experiments, a sentence with 80\% probability for topic~1 will be included 80 times in the expert for topic~1 and 20 times in the expert for topic~2. We repeat these experiments, adding a sentence per every 10\%, but rounding up small percentages so that every sentence will be added to every expert at least once.  Thus, we use a more fine grained topic model to mitigate data sparseness,  but we risk adding non-typical or irrelevant sentences to experts.
-
-
-\subsection{POS Tagging}
-\atrcomments{More detail in the introductory chapter}
-
-For part of speech tagging, I use the TnT (Trigrams'n'Tags) tagger \cite{brants:00.2}. TnT is based on a second order Markov Model and has an elaborate model for guessing the POS tags for unknown words. I use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition frequencies).
-
-\subsection{Overall Architecture}
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth]{figures/approach.png}
- \caption{Overview of the architecture of the POS tagging and parsing experts.}\label{fig:architecture0}   
- \end{figure*}
-
-Figure~\ref{fig:architecture0} shows the overall architecture of the system. 
-I use sentences as documents. Based on the document topic information, I then group the sentences into genre topics. I collect all sentences from the training and test set, cluster them via the MALLET topic modeler, and determine for which expert(s) the sentence is relevant to. There are several ways of determining the best expert based on the probability distribution of topics in a sentence. Then, we separate the sentences for each expert into training and test sentences, based on the previously determined data splits (see above).
-
-The experts can be determined based on hard or soft clustering decisions: For hard clustering, the sentences are assigned to hard topics, based on the topic that has the highest probability in that sentence. I.e., if for sentence $s_x$, MALLET lists the topic $t_1$ as the topic with the highest probability, then $s_x$ is added to the data set of topic $t_1$. In other words, the data set of topic $t_1$ consists of all sentences for which MALLET showed topic $t_1$ as the most likely topic. This means that the data set sizes vary between topics. This is a simplification since a sentence can represent different topics to different degrees. Thus, I investigate whether I can utilize the soft clustering information directly and add every sentence to every POS tagging expert, weighted based on the degree to which it represents the topic of this expert. This not only allows me to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every domain expert.
-
-Hence, for soft clustering experiments, I utilize the entire topic distribution of a sentence by weighting sentences in the training data based on their topic distribution. I simulate weighting training sentences by adding multiple copies to the training files of the experts. Thus, for 2-topic experiments, a sentence with 80\% probability for topic~1 will be included 8 times in the expert for topic~1 and 2 times in the expert for topic~2, rounding up small percentages so that every sentence will be added to every expert at least once.  Thus, I use a more fine grained topic model while mitigating data sparseness,  but we risk adding non-typical / irrelevant sentences to experts.
 
 \subsection{Baselines}
 
@@ -241,9 +153,9 @@ I use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS taggi
 
 
 In this section, I discuss the results of the experiments based on the research questions delineated in section~\label{sec:quest}.
-\subsection{Does Topic modeler detect relevant topics?}
+\subsection{Question 1: Can topic modeling successfully identify genres in a dataset?}
 
-\atrcomments{Based on EACL split}
+\todo[inline]{Based on EACL split}
 
 \begin{table}[t!]
 	\begin{center}
@@ -283,9 +195,6 @@ For the 10-topic experiments, we notice that topics 2, 4, 7, 8, 9, and 10 contai
 \end{table}
 
 \subsection{POS Tagging Experts}
-
-\atrcomments{subject to change!}
-
 
 \begin{table}[t]
 \centering

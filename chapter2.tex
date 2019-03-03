@@ -1,10 +1,116 @@
-\chapter{Background}
+\chapter{Methodology}
+\todo[inline]{POS tagging; Dependency Parsing ; TM; TBL}
 
-\atrcomments{TBD!!!!!}
+%\atrcomments{TBD!!!!!}
+
+
+
+\section{Corpus}
+\todo[inline]{EACL+ICON}
+\subsection{Data Sets}
+
+
+For our experiments, we use the Wall Street Journal (WSJ) section of the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus (version 3.02) \cite{tateisi:tsujii:04}. Both corpora use the Penn Treebank POS tagset \cite{santorini:90} with minor differences.%, as described in section \ref{sec:q1}.
+
+For the WSJ corpus, we extract the POS annotation from the syntactically annotated corpus. The GENIA Corpus comprises biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. We use the POS tagged version. For WSJ, we use the standard data split for parsing:  using sections 02-21 as training data and section 22 as our test set. We reserve section 23 for future parsing expert experiments.
+
+
+\section{Topic Modeling}
+
+Probabilistic topic modeling is a class of algorithms which detects
+the thematic structure in a large volume of documents. Topic modeling
+is unsupervised, i.e., it does not require annotated
+documents \cite{Blei:2012:PTM:2133806.2133826} but rather discovers similarity between documents. Latent Dirichlet
+Allocation (LDA) is one of the topic modeling algorithms. It is a
+generative probabilistic model that approximates the underlying hidden topical structure of a collection of texts based on the distribution of words in the documents \cite{Blei:2003:LDA:944919.944937}. I explain LDA in more detail below.
+
+\paragraph*{LDA} 
+
+Intuitively, Latent Dirichlet Allocation (LDA) is a method for discovering the hidden topics in a sentence. E.g., consider the following WSJ sentence. If we choose to model this in terms of LDA, we get the output shown in table~\ref{tab:2topicssent} and \ref{tab:10topicssent}.
+
+
+``Though growers can't always keep the worm from the apple , they can protect themselves against the price vagaries of any one variety by diversifying -- into the recently imported Gala , a sweet New Zealand native ; the Esopus Spitzenburg , reportedly Thomas Jefferson's favorite apple ; disease-resistant kinds like the Liberty."
+ 
+ % Please add the following required packages to  document preamble:
+%\usepackage{multirow}
+\begin{table*}[!htb]
+\centering
+
+\caption{2 topics distribution}
+\begin{tabular}{cc}
+%\multicolumn{2}{c}{2-topic probability distribution} 
+\\ \hline
+0 & 1 \\
+95.90 & 4.10 \\ \hline
+\end{tabular}
+\label{tab:2topicssent}
+
+\caption{10 topics distribution
+%\\ 
+}
+\begin{tabular}{cccccccccc}
+%\multicolumn{10}{c}{10-topic probability distribution} 
+\\ \hline
+
+0 & \multicolumn{1}{c}{1} & \multicolumn{1}{c}{2} & \multicolumn{1}{c}{3} & \multicolumn{1}{c}{4} & \multicolumn{1}{c}{5} & \multicolumn{1}{c}{6} & \multicolumn{1}{c}{7} & \multicolumn{1}{c}{8} & \multicolumn{1}{c}{9} \\
+0.11 & 0.10 & 0.08 & 0.10 & 0.09 & 30.58 & 15.28 & 49.55 & 3.93 & 0.16 \\ \hline
+\end{tabular}
+\label{tab:10topicssent}
+
+%\caption{2 \& 10-topic probability distribution for a WSJ corpus sentence: \\ }
+%\label{tab:10t-probab}
+\end{table*}
+
+I.e., when we choose the number of topics as 2 \& 10, LDA creates a probabilistic distribution of topics in the sentence. This process of discovering topics in a document can be represented by a generative model. Figure~\ref{fig:ldaplate} shows the plate diagram for graphical model for LDA. Plate diagrams are standard for representing repeating entities in a graphical model for Bayesian inference. Each document($W$), i.e., a sentence in this case, is a mixture of topics. In other words, a sentence consists of a collection of words, i.e., $W = {w_1,w_2, ..., w_N}$. A corpus can be represented as a collection of $M$ sentences or documents, i.e., $C = {W_1, W_2, ..., W_M}$. For each sentence in a corpus, the generative steps for LDA can be given as below:
+\begin{itemize}
+    \item The number of words in a sentence i.e., $N$ is chosen from a Poisson distribution.
+    $$N \sim Poisson(\lambda)$$
+    \item The mixture of topic for a sentence is chosen according to the dirichlet distribution over a fixed set of topics.
+    $$\theta \sim Dirichlet(\alpha)$$
+    \item Each word ($w_i$) in sentence ($W$) can be generated as follows:
+    \begin{itemize}
+        \item Pick a topic according to the multinomial distribution sampled above.
+        $$Z_n \sim Multinomial(\theta)$$
+        \item Generate the word from the topic according to the multinomial distribution of topics. I.e., we choose a word from $p(w_n|Z_n, \beta)$, where $\beta$ represents word probabilities.
+    \end{itemize}
+    
+    
+\end{itemize}
+
+The inference/parameter estimation step follows the generative step, which requires calculating the posterior distribution of the hidden variables given a sentence. 
+\atrcomments{to be finished ........}
+
+
+
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/LDA_plate_diagram.png}
+ \caption{Graphical model for LDA~\citep{Blei:2003:LDA:944919.944937}}\label{fig:ldaplate}   
+ \end{figure*}
+ 
+
+\paragraph*{LDA toolkit}
+
+There are several  open sourced toolkits available for LDA. We use the topic modeling toolkit MALLET \cite{McCallumMALLET}.  The
+topic modeler in MALLET implements Latent Dirichlet Allocation (LDA), clustering
+documents into a predefined number of topics. As a result, it provides
+different types of information such as:
+
+\begin{itemize}
+	\item  Topic keys:  The highest ranked words per topic with their probabilities; 
+	
+	\item Document topics: The topic distribution for each document (i.e., the probability that a document belongs to a given topic); and 
+	
+	\item Topic state: This correlates all words and topics.
+	
+\end{itemize}
 
 \section{POS Tagging}
 
+\paragraph*{POS Tagging Toolkit}
 
+For part of speech tagging, I use the TnT (Trigrams'n'Tags) tagger \cite{brants:00.2}. TnT is based on a second order Markov Model and has an elaborate model for guessing the POS tags for unknown words. I use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition frequencies).
 
 \section{Dependency Parsing}
 
