@@ -1,6 +1,6 @@
 \chapter{Domain Experts via Topic Modeling}
 
-\todo[inline]{Contains research questions for the experts; experimental setup; experimental results;summary}
+%\todo[inline]{Contains research questions for the experts; experimental setup; experimental results;summary}
 
 \section{Introduction}
 
@@ -42,7 +42,7 @@ In order to investigate this question, I generate a two-topic corpus by combinin
 
 \subsection*{Question 3: Does Dependency Parsing Benefit from the Topics?}
 
-Here, I investigate the effects of using topic modeling experts for dependency parsing. I first use gold POS tags in order to abstract away from POS tagging quality. In a second step, I investigate the interaction between POS tagging and parsing experts. I.e., I am interested in whether dependency parsing can profit from using the POS tags that were determined by the POS tagging experts. This helps in determining whether integrating POS information given by the POS experts can improve dependency parsing or whether there is no interaction between the two levels.
+Here, I investigate the effects of using topic modeling experts for dependency parsing. I first use gold POS tags in order to abstract away from POS tagging quality. In a second step, I investigate the interaction between POS tagging and parsing experts. I.e., I am interested in whether dependency parsing can profit from using the POS tags that were determined by the POS tagging experts. This helps in determining whether integrating POS information given by the POS experts can improve dependency parsing or whether there is no interaction between the two levels. Similar to POS tagging experts, I experiment with two different clustering techniques - hard \& soft clustering to address the data sparsity issue.
 
 \subsection*{Question 4: What do the Experts Learn?}
 
@@ -69,7 +69,8 @@ The experts can be determined based on hard or soft clustering decisions: For ha
 
 Hence, for soft clustering experiments, I utilize the entire topic distribution of a sentence by weighting sentences in the training data based on their topic distribution. I simulate weighting training sentences by adding multiple copies to the training files of the experts. Thus, for 2-topic experiments, a sentence with 80\% probability for topic~1 will be included 8 times in the expert for topic~1 and 2 times in the expert for topic~2, rounding up small percentages so that every sentence will be added to every expert at least once.  Thus, I use a more fine grained topic model while mitigating data sparseness,  but we risk adding non-typical / irrelevant sentences to experts.
 
-\subsection{Clustering Decision}
+\subsection{Clustering Decision} 
+\todo[inline]{Not sure if this should be here or in a separate chapter or a research question}
 
 In the research questions, I outlined a setting of using a finer grained split with a larger number of topics. However, evidently, 
 %mentioned that having a finer grained split, i.e., 
@@ -112,7 +113,7 @@ In order to represent the distinct domains (WSJ, GENIA) and also the sub-genres 
 \end{table*}
  
 In Table~\ref{tab:2topicssent} and~\ref{tab:10topicssent}, we can see the probability of the highest (7) and the second highest (5) topic are fairly close. Thus, if I take topic 7 and discard the other topics, I lose a fair share of information given by LDA. In other words, dividing a corpus into experts creates a significant sparsity in training data if I consider the highest probability topic and discard the rest.
-This problem can be mitigated if we effectively utilize the whole topic probability distribution by giving a sentence to more than one topic. Thus, I also investigate whether we can utilize the soft clustering information directly and add every sentence to every domain expert, weighted based on the degree to which it represents the topic of this expert. This not only allows us to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every expert. The risk is that I ``diffuse'' the expert knowledge too much by adding all sentences even if they are weighted. 
+This problem can be mitigated if we effectively utilize the whole topic probability distribution by giving a sentence to more than one topic. Thus, I also investigate whether we can utilize the soft clustering information directly and add every sentence to every domain expert, weighted based on the degree to which it represents the topic of this expert. This not only allows us to model topics in more detail, it can also help combating data sparsity since every sentence contributes to every expert. The risk is that I diffuse the expert knowledge too much by adding all sentences even if they are weighted. 
 
 
 \subsection{Baselines}
@@ -121,31 +122,32 @@ I define two baselines to compare my results with. As the first baseline, I take
 
 \subsection{Evaluation}
 
-I use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS tagging results  and the CoNLL shared task evaluation script\footnote{http://ilk.uvt.nl/conll/software/eval.pl} for evaluating the parsing results. I report the following evaluation metrics for evaluation:
+I use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS tagging results  and the CoNLL shared task evaluation script\footnote{http://ilk.uvt.nl/conll/software/eval.pl} for evaluating the parsing results. I report the overall accuracy for POS tagging and attachment scores (labeled \& unlabeled) for dependency parsing.
+% I report the following evaluation metrics for evaluation:
 
-\begin{itemize}
-    \item POS tagging
-    \begin{itemize}
-        \item Overall Accuracy: For POS tagging, we evaluate the results based on the accuracy of identifying POS tags correctly in the test set as shown in~\ref{eq:posacc}. I.e., we measure how many tags have been correctly identified in the test set.
-        \begin{equation} \label{eq:posacc}
-            Accuracy = \frac{Number\ of\ correctly\ identified\ tokens}{total\ number\ of\ tokens}
-        \end{equation}
-        \item Accuracy for Known \& Unknown tokens: For POS tagging, unknown or out of vocabulary words (OOV) pose as a challenging problem. \texttt{tnt-diff} provides an utility to measure accuracy based on number of correct predictions for known vs. unknown words. I discuss the method employed by TnT to determine the POS tags for unknown words in chapter \atrcomments{TBD}. I.e., we can determine the accuracy on known and OOV words separately. Since performance on OOV words is an essential determining factor, I use this metric to further analyze the results from domain experts in greater detail. This is a bigger challenge in a domain adaptation situation since there are domain specific words for each domain, which tend to get misclassified in a heterogeneous dataset.
-    \end{itemize}
-    \item Dependency Parsing
-    \begin{itemize}
-        \item Labeled Attachment Scores (LAS): For evaluating the results of dependency parsing experiments in this chapter, I report LAS\footnote{I report micro-averaged LAS. Micro-averaged LAS is reported on words as opposed to macro-averaged LAS, which considers sentences as the grain.}.  As \ref{eq:las} shows, LAS estimates the number of words with correctly predicted head and label.
-        \begin{equation} \label{eq:las}
-            LAS = \frac{number\ of\ words\ with\ correct\ head\ and\ label}{total\ words}
-        \end{equation}
+% \begin{itemize}
+%     \item POS tagging
+%     \begin{itemize}
+%         \item Overall Accuracy: For POS tagging, we evaluate the results based on the accuracy of identifying POS tags correctly in the test set as shown in~\ref{eq:posacc}. I.e., we measure how many tags have been correctly identified in the test set.
+%         \begin{equation} \label{eq:posacc}
+%             Accuracy = \frac{Number\ of\ correctly\ identified\ tokens}{total\ number\ of\ tokens}
+%         \end{equation}
+%         \item Accuracy for Known \& Unknown tokens: For POS tagging, unknown or out of vocabulary words (OOV) pose as a challenging problem. \texttt{tnt-diff} provides an utility to measure accuracy based on number of correct predictions for known vs. unknown words. I discuss the method employed by TnT to determine the POS tags for unknown words in chapter \atrcomments{TBD}. I.e., we can determine the accuracy on known and OOV words separately. Since performance on OOV words is an essential determining factor, I use this metric to further analyze the results from domain experts in greater detail. This is a bigger challenge in a domain adaptation situation since there are domain specific words for each domain, which tend to get misclassified in a heterogeneous dataset.
+%     \end{itemize}
+%     \item Dependency Parsing
+%     \begin{itemize}
+%         \item Labeled Attachment Scores (LAS): For evaluating the results of dependency parsing experiments in this chapter, I report LAS\footnote{I report micro-averaged LAS. Micro-averaged LAS is reported on words as opposed to macro-averaged LAS, which considers sentences as the grain.}.  As \ref{eq:las} shows, LAS estimates the number of words with correctly predicted head and label.
+%         \begin{equation} \label{eq:las}
+%             LAS = \frac{number\ of\ words\ with\ correct\ head\ and\ label}{total\ words}
+%         \end{equation}
         
-        \item Unlabeled Attachment Scores (UAS): UAS, as the name suggests, evaluates based on correctly predicted head. 
-        \begin{equation} \label{eq:uas}
-            UAS = \frac{number\ of\ words\ with\ correct\ head}{total\ words}
-        \end{equation}
+%         \item Unlabeled Attachment Scores (UAS): UAS, as the name suggests, evaluates based on correctly predicted head. 
+%         \begin{equation} \label{eq:uas}
+%             UAS = \frac{number\ of\ words\ with\ correct\ head}{total\ words}
+%         \end{equation}
         
-    \end{itemize}
-\end{itemize}
+%     \end{itemize}
+% \end{itemize}
 
 
 
@@ -153,7 +155,8 @@ I use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS taggi
 
 
 In this section, I discuss the results of the experiments based on the research questions delineated in section~\label{sec:quest}.
-\subsection{Question 1: Can topic modeling successfully identify genres in a dataset?}
+
+\subsection*{Question 1: Can topic modeling successfully identify genres in a dataset?}
 
 \todo[inline]{Based on EACL split}
 
@@ -194,7 +197,7 @@ For the 10-topic experiments, we notice that topics 2, 4, 7, 8, 9, and 10 contai
 	\label{tab:ex:2topics}
 \end{table}
 
-\subsection{POS Tagging Experts}
+\subsection*{Question 2: Does POS Tagging Benefit from Using Topics?}
 
 \begin{table}[t]
 \centering
@@ -210,7 +213,7 @@ Soft Clustering & 96.73 & \textbf{96.84} \\ \hline
 \end{table}
 
 
-In this section, I present the results on the experiments for questions 2 \& 3. I investigate whether the POS tagger can benefit from using topic modeling, i.e., whether POS tagging results can be improved by training experts for genres provided by topic modeling. I compare the topic modeling approach to  two baselines for the 2-topic and 10-topic setting. I also perform a soft clustering experiment, in which each sentence is added to every topic, weighted by its probability.
+In this section, I present the results on the experiments for question 2. I investigate whether the POS tagger can benefit from using topic modeling, i.e., whether POS tagging results can be improved by training experts for genres provided by topic modeling. I compare the topic modeling approach to  two baselines for the 2-topic and 10-topic setting. I also perform a soft clustering experiment, in which each sentence is added to every topic, weighted by its probability.
 
 The results in Table~\ref{tab:mixedresults} show that if I assume a 2-topic setting, the experts perform better than both baselines, i.e., the model trained on the full training set and the model with randomly chosen ``topics". The 2-topic expert model reaches an accuracy of 96.84\%, which is slightly higher than the full training set accuracy of 96.64\%. We know that the 2-topic setting provides a clear separation between WSJ and GENIA (Table~\ref{tab:cluster}). Thus, this setting outperforms the full training set using a smaller amount of training data. There is also an increase of 0.36 percent points over the accuracy of the 2 random split setting. 
 
@@ -220,9 +223,11 @@ For the 10-topic setting, the topic expert model outperforms the random split of
 Since training set size is a detrimental factor for the larger number of topics, I also conducted an experiment where I use soft clustering so that every sentence is represented in every topic, but to a different degree. The last row in table~\ref{tab:mixedresults} reports the results of this experiment. We notice that the 2-topic experts cannot benefit from the soft clustering. Since the separation between WSJ and GENIA is very clearly defined for the 2-topic experiments,  the advantage of having a larger training set is outweighed by too many irrelevant examples from the other topic. However, the 10-topic model profits from the soft clustering, which indicates that soft clustering can alleviate the data sparseness problem of the POS tagging experts for larger numbers of topics. 
 %A more detailed analysis of the POS tagging results (on a slightly different data split), see \cite{mukherjee:kuebler:ea:16}. This work includes an experiment showing that the POS tagging experts also increase performance for the WSJ corpus only, showing that POS tagging experts also perform better on more homogeneous collections, i.e., they adjust to less obvious differences between sentences.
 
-\subsection{Parsing Experts}
+%\subsection{Parsing Experts}
 
-In this section, I discuss my findings for questions 2 \& 4. I present my results from two perspectives. One, where I assume I have gold POS tags and another, where I use POS tags from TnT as an input to the parser. This will help me in determining the effect of POS tags on parsing choices. 
+\subsection*{Question 3: Does Dependency Parsing Benefit from the Topics?}
+
+In this section, I discuss my findings for question 3. I present my results from two perspectives. One, where I assume I have gold POS tags and another, where I use POS tags from TnT as an input to the parser. This will help me in determining the effect of POS tags on parsing choices. 
 
 \subsubsection{Using Gold POS Tags}\label{sec:goldpos}
 
@@ -314,8 +319,9 @@ CONJ & NMOD & 86 & 13 & 56\\ \hline
 When I compare the experiments where I use the full POS tagging baseline along with topic model parsing experts (row 3 in table~\ref{tab:TnTPOS}) to the full topic model (row 4), I observe that the latter model reaches only very minimal gains by using the topic modeling POS tagger when I use 2 topics, and there is a negative trend when I use 10 topics. I.e. the overall quality of the POS tagger is more important than its specialization. Thus, even if the topic model POS tagger outperforms its full baseline, the learned adaptations only have a minimal effect on parsing accuracy.
 
 \subsection{Analysis of results}
+\todo[inline]{This could be like this or it could be 2 separate research question - one for POS tagging and one for parsing}
 
-It is important to delve deeper into the results to understand where improvement stems from. For POS tagging, the experts outperformed the random split baseline by a greater margin. Hence I take a closer look at the differences. I analyze the results for gold POS tags experiments to better understand the improvement. 
+It is important to delve deeper into the results to understand where improvement stems from. For POS tagging, the experts outperformed the random split baseline by a greater margin. Hence I take a closer look at the differences. I analyze the results for gold POS tags experiments to better understand the improvement for dependency parsing, since it yields most accurate predictions.  
 
 \begin{table*}[t]
 	\begin{center}
@@ -335,7 +341,7 @@ It is important to delve deeper into the results to understand where improvement
 	\caption{Unknown word rates and accuracies for known and unknown words in the WSJ+GENIA experiment using 2 topics.\label{tab:known}}
 \end{table*}
 
-\subsubsection*{\textbf{POS Tagging}}
+\subsubsection{POS Tagging}
 
 In this section, I investigate the differences between the models learned based on a random split as opposed to the models learned based on the topic models. I concentrate on the 2 topic models since this the closest approximation of the mixed domain problem that I am addressing in this chapter.
 
@@ -393,7 +399,7 @@ The 8 most frequent confusion sets under both conditions are shown in table~\ref
 
 
 
-\subsubsection*{\textbf{Parsing}}
+\subsubsection{Dependency Parsing}
 
 Since the goal is to determine the performance of experts, I take a closer look at the results presented for the parsing experiments using gold POS tags in  section~\ref{sec:goldpos}. The results show that the 2-topic parsing experts outperform the general parser trained on the full training set by almost 2 percent points.  I looked at the 5 sentences that had the lowest LAS when I used the general parser. These sentences are shown in table~\ref{tab:compLASTMvsFS}, along with their LAS for both settings. The table clearly shows that the topic expert parsers reach a much higher LAS across all these sentences, and the highest increase reaches 35 percent points. We also see that there are two headlines among these sentences. They are different in their syntactic patterns from other sentences and thus difficult to parse. For this reason, I decided to have a closer at all ``incomplete" sentences, i.e., sentences that do not have verbs, as an approximation of headlines. I found that of the 1~310 sentences in the training set, 437 were grouped into topic~1, the other 873 sentences in topic~2. In the test set, I had 65 such sentences, 15 in topic~1 and 50 in topic~2. For the sentences in topic~1, I calculate an LAS of 76.54, for the ones in topic~2 an LAS of 89.91. These results show that the parser expert for topic~2 has adapted substantially better to the syntax of such untypical sentences than the parser expert for topic~1. 
 

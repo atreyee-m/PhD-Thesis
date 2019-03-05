@@ -5,14 +5,14 @@
 
 
 
-\section{Corpus}
-\todo[inline]{EACL+ICON}
-\subsection{Data Sets}
+
+% \begin{enumerate}[label=Setting \arabic*,leftmargin=*]
+% %\setlength\itemsep{2pt}
+%     \item We consider all the sentences set aside as the test set has incorrect dependency labels.
+%     \item Test set contains a mix of sentences with correct and incorrect dependency labels. 
+% \end{enumerate}
 
 
-For our experiments, we use the Wall Street Journal (WSJ) section of the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus (version 3.02) \cite{tateisi:tsujii:04}. Both corpora use the Penn Treebank POS tagset \cite{santorini:90} with minor differences.%, as described in section \ref{sec:q1}.
-
-For the WSJ corpus, we extract the POS annotation from the syntactically annotated corpus. The GENIA Corpus comprises biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. We use the POS tagged version. For WSJ, we use the standard data split for parsing:  using sections 02-21 as training data and section 22 as our test set. We reserve section 23 for future parsing expert experiments.
 
 
 \section{Topic Modeling}
@@ -375,5 +375,82 @@ Chen and Manning's neural network architecture for parsing was further modified 
 
 A graph-based neural network parser was proposed by Pei~\etal~\cite{pei2015effective} which made use of a $tanh-cubic$ activation function instead of Chen and Manning cubic activation function. The parser outperformed the baseline graph-based parsers. However, it is not clear if this parser outperforms the other neural network based parsers. Neural network parsers for multilingual settings are implemented by using convolutional neural networks by Zhang~\etal~\cite{zhang2016probabilistic} by using the basic architecture of Pei~\etal.
 
+\section{Transformation Based Error Driven Learning}
 
-\section{Domain Adaptation}
+\begin{figure}[t!]
+\centering
+    \includegraphics[scale=0.8]{tbl-brill.png}
+\caption{Transformation Based Error Driven Parsing}~\citep{brill1992simple}
+\label{tbl:brill}
+\end{figure}
+
+The underlying idea of transformation based error driven learning (TBL) is shown in figure~\ref{tbl:brill}. Transformation based error driven learning (TBL) was originally developed for POS tagging \cite{brill1992simple,Brill:1995:TEL:218355.218367}. The idea is straightforward, yet effective. We have a set of unannotated text. We run it through an ``initial" state system, which is dependent on the task. E.g., in Brill's case, it was a stochastic $n$-gram tagger. This produces an initial annotation, albeit not a good/accurate one. However, the errors in the initial annotation can be continually improved by comparing it to the ground truth or the gold standard. Each such annotation passes through multiple iterations of error correction, until there is no more improvement in terms of reduction of errors. In repeating this process, the TBL process accumulates a set of rules, which is the final output. This is the training phase, which essentially learns from the errors and creates a set of rules. Now, that we have learned these rules, we can apply it to another corpus. 
+
+As described in the previous paragraph, the method works with two versions of the training data: the gold standard and (an initially unannotated) working copy that simulates the learning process and records the errors. The unannotated version of the training data is tagged by a simple part of speech tagger\footnote{This could be any simple part of speech tagger, or a heuristic that labels every work with the most frequent POS tag}, to create the initial state of the working copy of the text.  The goal is to bridge the difference between the gold standard text and the working copy by learning rules that change the incorrect POS tags to the correct ones. 
+%This is done by applying a set of rule templates repeatedly and computing the objective function. 
+
+Learning is based on rule templates, which consist of two parts: rewrite rules and triggering environment. The templates need to be determined by the researcher, based on the problem. In general, a rule template is of the form:
+
+
+\textbf{Rule Template} ${(A, B): X \rightarrow Y} $
+
+I.e., if we observe conditions $A$ and $B$ (triggering environment), we change the output variable (POS tags, for Brill and dependency labels, for us) 
+from $X$ to $Y$ (rewrite rule). Note that X can remain unspecified, then the rule is applied independent of the current variable (label or POS tag).
+
+The following is an example of a rule template for POS tagging: Change the POS tag of the current word from X to Y if the previous word is tagged as Z, where X, Y, and Z are variables that need to be instantiated during learning. 
+
+The learner creates rule hypotheses out of those templates by identifying incorrectly tagged words in the working copy and instantiating the template variables.
+For example, one possible rule hypothesis could be the following: Change the POS tag of the word ``impact'' from verb to noun if the previous word is tagged as a determiner. %One such template can instantiate multiple transformations. 
+%At each stage, a list of multiple transformations are instantiated by applying these templates. 
+
+In one pass through the system, all possible rule hypotheses are created and ranked  based on an objective function which determines for each hypothesis how many corrections occur. The rule hypothesis with the highest score is applied to the working copy and added to the final list of transformations, stored in order, during the training process. Then the process repeats, and new rule hypotheses are generated from the templates based on the remaining errors in the working copy. The process finishes when there is no more improvement in terms of reduction of errors.~\todo{more?} 
+
+\citet{brill1993automatic} also used this approach to parse text by learning a ``transformational'' grammar. The algorithm repeatedly compares the bracketed structure of the syntactic tree to the gold standard structure and learns the required transformations in the process~\todo{Expand}. 
+
+\citet{brill1994rule} also use this technique for prepositional phrase attachment disambiguation. \todo{Expand}
+
+Transformation based error driven learning has also been used for information retrieval by \citet{woodley2005applying}\todo{Expand??}.
+
+
+
+
+
+%\section{Domain Adaptation}
+
+\section{Evaluation}
+
+\atrcomments{Example?}~\todo{Look at hulk}
+
+In this section I discuss the different evaluation techniques that will be used in this thesis. I report on the standard metrics for POS tagging and dependency parsing. I discuss these metrics in detail below.
+%For POS tagging I mainly report accuracy, which estimates the accuracy in predicting POS tags. For dependency parsing
+
+
+\subsection{POS tagging}
+    \begin{itemize}
+        \item Overall Accuracy: For POS tagging, I evaluate the results based on the accuracy of identifying POS tags correctly in the test set as shown in~\ref{eq:posacc}. I.e., I measure how many tags have been correctly identified in the test set.
+        \begin{equation} \label{eq:posacc}
+            Accuracy = \frac{Number\ of\ correctly\ identified\ tokens}{total\ number\ of\ tokens}
+        \end{equation}
+        \item Accuracy for Known \& Unknown tokens: For POS tagging, unknown or out of vocabulary words (OOV) pose as a challenging problem. \texttt{tnt-diff} provides an utility to measure accuracy based on number of correct predictions for known vs. unknown words. I discuss the method employed by TnT to determine the POS tags for unknown words in section \atrcomments{TBD}. I.e., we can determine the accuracy on known and OOV words separately. Since performance on OOV words is an essential determining factor, I use this metric to further analyze the results from domain experts in greater detail. This is a bigger challenge in a domain adaptation situation since there are domain specific words for each domain, which tend to get misclassified in a heterogeneous dataset.
+    \end{itemize}
+\subsection{Dependency Parsing}
+    \begin{itemize}
+        \item Labeled Attachment Scores (LAS): For evaluating the results of dependency parsing experiments in this chapter, I report LAS\footnote{I report micro-averaged LAS. Micro-averaged LAS is reported on words as opposed to macro-averaged LAS, which considers sentences as the grain.}.  As \ref{eq:las} shows, LAS estimates the number of words with correctly predicted head and label.
+        \begin{equation} \label{eq:las}
+            LAS = \frac{number\ of\ words\ with\ correct\ head\ and\ label}{total\ words}
+        \end{equation}
+        
+        \item Unlabeled Attachment Scores (UAS): UAS, as the name suggests, evaluates based on correctly predicted head. 
+        \begin{equation} \label{eq:uas}
+            UAS = \frac{number\ of\ words\ with\ correct\ head}{total\ words}
+        \end{equation}
+        
+        \item Exact Match (EM): This metric determines how many sentences are parsed accurately by the parser.
+        
+    \end{itemize}
+
+
+
+
+% I use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS tagging results  and the CoNLL shared task evaluation script\footnote{http://ilk.uvt.nl/conll/software/eval.pl} for evaluating the parsing results. I report the following evaluation metrics for evaluation:
+
