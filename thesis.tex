@@ -14,10 +14,10 @@
 \usepackage[page]{appendix}  %for appendices
 \usepackage{rotating}  %for rotated, landscape images
 
-\usepackage{natbib}
+\usepackage[round]{natbib}
 
 
-
+\usepackage{enumitem}
 %\usepackage{listings}
 %\usepackage{comment}
 \usepackage{color,soul}
@@ -88,7 +88,8 @@
 \newcommand{\hlcyan}[1]{{\sethlcolor{cyan}\hl{#1}}}
 \newcommand{\ignore}[1]{}
 \newcommand{\atrcomments}[1]{\textcolor{red}{\textbf{\textit{\underline{#1}}}}}
-
+%\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\blue}[1]{{\leavevmode\color{blue}{#1}}}
 \newcommand\myquestions[1]{\textcolor{yellow}{#1}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -284,7 +285,7 @@
 % Chapter 4 - Corpus
 %%%%%%%%%%%%%%%%
 
-\input{chapter4.tex}
+%\input{chapter4.tex}
 
 %%%%%%%%%%%%%%%%
 % Chapter 5 - Experts

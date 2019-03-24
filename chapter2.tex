@@ -108,12 +108,100 @@ different types of information such as:
 
 \section{POS Tagging}
 
-\paragraph*{POS Tagging Toolkit}
+Part of speech (POS) tagging refers to assigning part of speech tags, which can also be referred to as word class (e.g., nouns, verbs, adjectives) in a sentence. This is an interesting problem since a deep understanding of syntactic structure of a sentence helps in variety of NLP tasks such as question answering, sentiment analysis, opinion mining, etc. Often POS tagging is a precursor step in parsing, which is why, I look at POS tagging in my experiments, as well. Figure~\ref{fig:postag} shows a part-of-speech tagged sentence.
 
-For part of speech tagging, I use the TnT (Trigrams'n'Tags) tagger \cite{brants:00.2}. TnT is based on a second order Markov Model and has an elaborate model for guessing the POS tags for unknown words. I use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition frequencies).
+\begin{figure}[t]
+    \centering
+    \includegraphics[scale = 0.9]{figures/postagging.png}
+    
+    \caption{An example of POS tagging}~\label{fig:postag}
+\end{figure}
 
-\section{Dependency Parsing}
+As shown in the figure~\ref{fig:postag}, the task of POS tagging involves classifying words into their corresponding classes such as nouns, verbs, adjectives, etc. The most widely used POS tagset is the Penn Treebank tagset~\citep{Marcus:1994:PTA:1075812.1075835}. It contains 45 POS tag classes. Most of the available corpora use the PTB tagset with some variations. Availability of a tagged corpora is essential for corpus driven POS tagging. 
 
+Broadly, POS tagging can be rule-based~\todo{cite papers cited by Brill}, transformation-based~\citep{brill1992simple} and stochastic. I discuss the process of transformation based error driven POS tagging in greater detail in section~\ref{sec:TBL}. The problem of supervised stochastic part of speech (POS) tagging has been addressed by using generative models such as Hidden Markov Models (HMM)~\citep{brants:00.2} and  discriminative models such as Maximum Entropy Markov Model (MEMM)~\citep{ratnaparkhi1996maximum}. More recently, the deep learning based sequence modeling techniques have gained prominence.~\todo{cite}. %Since I use TnT tagger for my experiments, I will delineate the steps involved in HMM-based POS taggers. 
+I use the TnT (Trigrams'n'Tags) tagger~\cite{brants:00.2} for part of speech tagging experiments. TnT is based on a second order Markov Model and has an elaborate model for guessing the POS tags for unknown words. I use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition frequencies).
+
+POS tagging is essentially a sequence labeling task. I.e., given a sequence of words, the problem is to determine the most likely POS tags for the sequence. HMMs are widely used in sequence labeling tasks. These are probabilistic sequence models that take into account that there are observed and hidden events influencing the probability of a sequence. In case of POS tagging, as shown in figure~\ref{fig:postaghmm}, the observed events are words and POS tags are the hidden events.
+
+\begin{figure}[t]
+    \includegraphics[scale = 0.45]{figures/hmmpos.png}
+    \caption{POS tagging as HMM}~\label{fig:postaghmm}
+\end{figure}
+
+Typically an HMM has two parts - emission probabilities and transition probabilities. For POS tagging, the transition probability is the probability of encountering a POS tag given the POS tag at previous time point i.e.,  $P(t_i|t_{i-1})$. The emission probability computes the probability of affiliation of a word with a POS tag at a certain state, i.e., $P(w_i|t_i)$. These probabilities are calculated using maximum likelihood estimates (MLE) as given below.
+
+\begin{align}~\label{eq:transprob}
+    P(t_i|t_{i-1}) = \frac{Count(t_{i-1},t_i)}{Count(t_{i-1})} 
+\end{align}
+
+\begin{align}~\label{eq:emprob}
+    P(w_i|t_i) = \frac{Count(t_i,w_i)}{Count(t_i)}
+\end{align}
+    
+The problem, then is to compute the most probable sequence of hidden variables, i.e., POS tags given the observaions, i.e., the words. This is also known as decoding. TnT calculates this by using a second order Markov model, which means that instead of using bigram probabilities as shown in~\ref{eq:transprob}, it uses trigram transition probabilities. Therefore, the most probable tag sequence for a sequence of length $N$, is calculated as:
+
+\begin{align}
+    \hat{t} = \underset{t_1 ... T_N}{argmax}  \bigg [ \prod_{i=1}^N P(t_i|t_{i-1},t_{i-2}) P(w_i|t_i) \bigg] P(t_{N+1}|t_N)
+\end{align}
+
+To account for data sparsity - not all trigrams have equal representation in the training dataset - smoothing is applied. In TnT, a context independent linear interpolation of $n$-grams is used for smoothing.
+
+\begin{align}
+    P(t_i|t_{i-2},t_{i-1}) = \lambda_1 \hat{P}(t_i|t_{i-2},t_{i-1}) + \lambda_2 \hat{P}(t_i|t_{i-1}) + \lambda_3 \hat{P}(t_i)
+\end{align}
+where, $$\sum_{i=1}^3 \lambda_i = 1$$
+and $\hat{P}$ estimates the MLE estimates. The bigram estimate is shown in equation~\ref{eq:transprob}. The unigram and trigram MLEs are given below:
+
+\begin{equation}
+    \hat{P}(t_i|t_{i-2},t_{i-1}) = \frac{Count(t_{i-2},t_{i-1},t_i)}{Count(t_{i-2},t_{i-1})}
+\end{equation}
+
+\begin{equation}
+    \hat{P}(t_i) = \frac{Count(t_i)}{N}
+\end{equation}
+
+
+
+The values of $\lambda$ are estimated using deleted interpolation~\citep{jelinek1980interpolated}. 
+In TnT, the unknown words are estimated using suffix analysis following the work by~\cite{W93-0420}. Additionally, probability distribution of words around capitalized words contributes further to the disambiguation process.~\todo{detail?} 
+
+The most likely subsequence of tags is generally computed using Viterbi's Algorithm. This is a dynamic programming approach which operated by first computing the probability matrices given the previous observations. Finally the sequence with the highest path probability is selected as the final sequence.~\todo{I think I need to detail?} 
+However, depending on the length of the sentence, the time complexity for Viterbi algorithm can be quadratic. To improve this, beam search is applied. Hence, for each time step, the decoding process now considers the best $n$ hypotheses pruning the rest. TnT implements this to achieve better time complexity than regular Viterbi. 
+
+\todo[inline]{Should I describe MEMMs too? also CRF taggers?}
+
+
+
+
+
+
+%These tasks generally work well when applied on the dataset from the same domain. However, the performance suffers when source and target are from different domains. The work in the area is largely driven by unavailability of data from the target domain. It is nearly impossible to hand annotate the huge amount of data generated by various sources. Manual annotation is even harder when the syntactic structure of the data differs widely. E.g., the syntactic structure of a newspaper corpus is very different from that of social media or academic journals from biomedical domain or literary works.  Dependency parsing is particularly useful because the dependency relations serve as an important feature to detect negation or multi word expressions, for instance. 
+
+
+%\paragraph*{POS Tagging Toolkit}
+
+
+
+\section{Dependency Parsing}\todo[inline]{to be fixed}
+
+Syntactic parsing refers to the process of extracting and analyzing the syntactic structure or representation of a natural language text. This is very useful is a variety of different domains such as machine translation, information retrieval, question answering \cite{hall2008transition}. More formally, we can define it as a structural prediction problem. Hence, there is an input which are sentences; an output, which are syntactic representation of a sentence;  and a model that maps the input to the output. The input sentence is usually split into tokens. The output is represented as trees. Dependency parsing is a type of syntactic parsing analyses the dependency structure of a sentence based on a dependency grammar. As illustrated in figure~\ref{fig:depParsetree}, the words in a sentence are linked with relations (shown using labeled arrows), also known as dependency relation (dependencies) where one word is the dependent~\footnote{can also be referred to as child} which depends on the head~\footnote{can also be referred to as parent}. In order to simplify the problem to provide a syntactic head to the word which does not have a head, an artificial root is introduced~\cite{kubler2009dependency}. Dependency parsing gained prominence because of the flexibility it provides for free word order languages such as Czech.
+
+Most commonly used dependency parsing approaches are transition-based and graph-based. The transition based approach is a greedy locally optimized classifier that learns how to get from one parse state to the next. %For dependency parsing, each step represents the steps for deriving the final dependency tree. These are stack-based and there are usually three different kinds of transitions - shift, left \& right which are chosen based on an oracle, usually a machine learning classifier such as SVM. 
+In contrast, for graph-based dependency parsing, the problem lies in finding maximum spanning trees (MST). The MST parser is state of the art in graph based parsing. The core idea of the parser to compute a score of the dependency tree~\footnote{Score of the tree is the sum of the score of each edge of the tree} which is a dot product of weight and a high dimensional feature vector. %Thus, it can be thought of as a problem of multiclass classification, where each dependency tree of the sentence is a class. 
+The resulting dependency parse is the highest scoring tree. I use MATE~\cite{bohnet2010very}~\footnote{code.google.com/p/mate-tools} which is a reimplementation of MST parser~\cite{McDonald:2005:NDP:1220575.1220641} for my experiments. %MATE parallelizes the feature extraction and parsing algorithm by using passive-aggressive perceptron algorithm~\cite{crammer2006online} as Hash Kernel. 
+The parser is highly efficient in terms of memory utilization and CPU requirements while maintaining the accuracy of the resultant parses.
+%Bohnet reported a 3.5 times increase in speed over the baseline MST parser using a single core CPU and it also requires a lot less memory than the contemporary parsers by using Hash Kernel. The speed increases further by using parallel algorithms and it can be further reduced at the cost of accuracy.
+
+\begin{figure*}[!htb]
+    \centering
+    \includegraphics[scale = 0.6]{figures/dep-tree.png}
+    \centering
+    \caption{Dependency parsing tree~\cite{kubler2009dependency}}
+    \label{fig:depParsetree}
+\end{figure*}
+
+\todo[inline]{this is from the qual paper}
 The process of automatically analyzing dependency structures to an input sentence is referred to as dependency parsing. A dependency tree needs to satisfy the following properties~\cite{kubler2009dependency}:
 \begin{itemize}
 \item A dependency tree needs to have an artificial root which specifies that there there must not exist an arc which comes into the root from another node(word).
@@ -375,7 +463,7 @@ Chen and Manning's neural network architecture for parsing was further modified 
 
 A graph-based neural network parser was proposed by Pei~\etal~\cite{pei2015effective} which made use of a $tanh-cubic$ activation function instead of Chen and Manning cubic activation function. The parser outperformed the baseline graph-based parsers. However, it is not clear if this parser outperforms the other neural network based parsers. Neural network parsers for multilingual settings are implemented by using convolutional neural networks by Zhang~\etal~\cite{zhang2016probabilistic} by using the basic architecture of Pei~\etal.
 
-\section{Transformation Based Error Driven Learning}
+\section{Transformation Based Error Driven Learning}~\label{sec:TBL}
 
 \begin{figure}[t!]
 \centering
@@ -403,11 +491,16 @@ The learner creates rule hypotheses out of those templates by identifying incorr
 For example, one possible rule hypothesis could be the following: Change the POS tag of the word ``impact'' from verb to noun if the previous word is tagged as a determiner. %One such template can instantiate multiple transformations. 
 %At each stage, a list of multiple transformations are instantiated by applying these templates. 
 
-In one pass through the system, all possible rule hypotheses are created and ranked  based on an objective function which determines for each hypothesis how many corrections occur. The rule hypothesis with the highest score is applied to the working copy and added to the final list of transformations, stored in order, during the training process. Then the process repeats, and new rule hypotheses are generated from the templates based on the remaining errors in the working copy. The process finishes when there is no more improvement in terms of reduction of errors.~\todo{more?} 
+In one pass through the system, all possible rule hypotheses are created and ranked  based on an objective function which determines for each hypothesis how many corrections occur. The rule hypothesis with the highest score is applied to the working copy and added to the final list of transformations, stored in order, during the training process. Then the process repeats, and new rule hypotheses are generated from the templates based on the remaining errors in the working copy. The process finishes when there is no more improvement in terms of reduction of errors.~\todo{more?}
+
+\citet{brill1994rule} also use this technique for prepositional phrase attachment disambiguation. In this case, the TBL process uses a 4-tuple corpus from WSJ section of Penn Treebank. The tuples looks like: $$<V\ NP1\ P\ NP2> \rightarrow Attachment\ decision$$
+$V$ is the verb, $NP1$ is the noun phrase which is the head of the verb's object, $P$ is the preposition and $NP2$ corresponds to the head of the noun phrase controlled by the preposition. One the example rule templates in this case would be - \\
+Change the attachment location from $NP1$ to $V$ if $P$ is 
+
 
 \citet{brill1993automatic} also used this approach to parse text by learning a ``transformational'' grammar. The algorithm repeatedly compares the bracketed structure of the syntactic tree to the gold standard structure and learns the required transformations in the process~\todo{Expand}. 
 
-\citet{brill1994rule} also use this technique for prepositional phrase attachment disambiguation. \todo{Expand}
+
 
 Transformation based error driven learning has also been used for information retrieval by \citet{woodley2005applying}\todo{Expand??}.
 
@@ -450,7 +543,91 @@ In this section I discuss the different evaluation techniques that will be used 
     \end{itemize}
 
 
+\section{Corpora}
+
+In this \atrcomments{section}, I elaborate on the corpora I used for the experiments conducted on domain adaptation for POS tagging and dependency parsing. I use three main corpora as a representative of their domains. I discuss these in detail in the next sections. In addition to classical domain adaptation, the goal is also to achieve a more generic form of domain adaptation, i.e., to evaluate if my system can detect domains in a heterogeneous or mixed dataset (see \atrcomments{chapter x}). Thus, I create an artificial corpus from the corpora, which contains equal representation of two domains. Although all the corpora used in this thesis are annotated in the PTB style, each has a distinctive syntactic style, which ... ~\todo{dont know how to finish this sentence}.
+
+%Since the goal is domain adaptation, the corpora used for the experiments need to be reasonably diverse. 
+  
+\subsection{Wall Street Journal section of Penn Treebank (WSJ)}
+
+~\todo{check!!}
+\footnote{https://catalog.ldc.upenn.edu/LDC2000T43}
+This is the Wall Street Journal section~\citep{Marcus:1994:PTA:1075812.1075835} of the Penn Treebank~\citep{santorini:90}. \textcolor{red}{This corpus contains annotated newspaper articles from WSJ from 1987 - 1989. The corpus is annotated for POS tags and parsed in PTB bracketed style. The dependency trees are then derived using the Penn Converter Tool~\citep{johansson2007a} and the inconsistencies are addressed manually}. I use this corpus as a representative of the newspaper domains. There are various different kinds of news articles from financial news, theater critique, weather, sports, politics, etc. Thus, in addition to contributing as a main domain, we can also exploit the corpus for micro-genres or more fine-grained domains. The sentences in WSJ are reasonably longer with an average length of 24 words. I use the standard split for parsing, which is, 02-21 for training, 22 for test and 23 for validation. Some of the example sentences from WSJ are as given below.  ~\todo{EXAMPLES}
+\begin{itemize}
+    \item In an Oct. 19 review of " The Misanthrope " at Chicago 's Goodman Theatre ( " Revitalized Classics Take the Stage in Windy City , " Leisure & Arts ) , the role of Celimene , played by Kim Cattrall , was mistakenly attributed to Christina Haag .
+    \item Japanese culture vs. American culture is irrelevant .
+    \item Las Vegas promises , or threatens , to become a giant carnival , with rooms to be had for \$ 45 a day or less , for visitors uninspired solely by gambling  .
+    \item To avoid default , lawmakers must pass legislation raising the limit to \$ 3.12 trillion from \$ 2.80 trillion by next Wednesday , according to the Treasury .
+     
+\end{itemize}
+
+\subsection{GENIA Corpus}
+
+The GENIA Corpus~\citep{tateisi:tsujii:04} comprises of biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. I use GENIA 1.0 trees~\cite{Ohta:2002:GCA:1289189.1289260} created in the Penn Treebank format\footnote{http://nlp.stanford.edu/~mcclosky/biomedical.html}. The treebank is converted to dependencies using pennconverter~\cite{johansson2007a}. The tagset used in GENIA is based on the Penn Treebank tagset, but it uses the tags for proper names and symbols only in very restricted contexts. This treebank serves as a representative of biomedical domain for my experiments. Clearly, this is very distinct from WSJ in terms of the nature of the content. Some of the sentences from the corpus are shown below.~\todo{EXAMPLES}
+\begin{itemize}
+    \item AP-1 is an integral component of the nuclear factor of activated T cells ( NFAT ) transcriptional complex , which is required for interleukin 2 gene expression in T cells .
+    \item The data further indicate that the IL-7R alpha chains are directly involved in the activation of JAKs and STATs and have a major role in proliferative signaling in precursor B cells .
+    \item Gel mobility shift assays and DNase I footprinting demonstrated that GM3 formed a sequence-specific collinear triplex with its double-stranded DNA target .
+    \item Generation of CD1+RelB+ dendritic cells and tartrate-resistant acid phosphatase-positive osteoclast-like multinucleated giant cells from human monocytes . 
+\end{itemize}
+
+\subsection{CReST Corpus}
+
+The CReST corpus~\citep{eberhard2010indiana} constitutes of natural language dialogues between two individuals performing a ``cooperative, remote, search task" (CReST). This is a multimodal corpus which is annotated for speech signals and their corresponding transcriptions. The transcribed text is annotated in PTB format for constituent trees. These constituent trees are converted to dependency trees using Penn Converter~\citep{johansson2007a}. Since this is transcribed from spoken dialogues, the average length of sentence is 7. In terms of linguistic factors, CReST has a subset of WSJ's dependency labels with 10 new labels added. A few examples of the CReST corpus are given below:
+\todo{EXAMPLES}
+
+\begin{itemize}
+    \item um to the right like right at the edge is
+    \item it's like as soon - like if I were to close the door it's right next to like the  bottom of the floor like where the door closes
+    \item and at the other end of that little hallway
+    \item the - the - okay so you know where the cardboard box is where I told you ? 
+\end{itemize}
+% \begin{table}[t]
+% \centering
+% \begin{tabular}{|l|} \hline
+% um to the right like right at the edge is \\ \hline
+% it's like as soon - like if I were to close the door it's right next to like the  bottom of the \\ floor like where the door closes \\ \hline
+% \end{tabular}
+% \caption{My caption}
+% \label{my-label}
+% \end{table}
+
+I use CReST as a representative target domain in my experiments. The CReST corpus consists of 23 dialogues that were manually annotated for dependencies. I randomly select 19 dialogues as my training data for the TBL algorithm and the rest as test. Since the system needs to learn rule hypotheses from incorrect predictions of the source domain parser, I can safely ignore sentences that were parsed completely correctly\footnote{Details about the split are discussed in Chapter TBL \atrcomments{TBD}}. For the test data, I use all the sentences from the designated dialogues (with correct and incorrect dependency label predictions). 
+Table~\ref{tab:sentdiv} shows the division of sentences for training and test.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{l|l|c|c}
+& \multirow{2}{*}{\# Dialogues} & \multicolumn{2}{c}{\# Sentences} \\ \cline{3-4}
+ &  & \multicolumn{1}{l|}{with errors} & \multicolumn{1}{l}{without errors} \\ \hline
+Training Set & \multicolumn{1}{|c|}{19} & 4384 & 459 \\
+Test Set & \multicolumn{1}{|c|}{4} & 831 & 85 \\ \hline
+\end{tabular}
+\caption{Target domain training and test set for TBL}
+\label{tab:sentdiv}
+\end{table}
+
+\subsection{WSJ-GENIA mixed corpus (WSJ+GENIA)} ~\label{sec:wsjgeniamixedcorpus}
+
+Since my objective is to identify domains from a heterogeneous dataset and then adapt POS taggers and dependency parsers to the corresponding domain, I need a dataset which contains sentences from different domains. In order to test my hypothesis, I create an artificial corpus by incorporating data from WSJ as well as the GENIA corpus in equal measure. 
+
+\begin{table}[t]
+\centering
+\begin{tabular}{l|c|c}
+      & Training Set & Test Set   \\ \hline
+WSJ   & 17~181  & 850        \\
+GENIA & 17~181  & 850        \\ \hline
+Total & 34~362  & 1~700 \\ \hline
+\end{tabular}
+\caption{Overview of the mixed dataset (WSJ+GENIA)}
+\label{tab:mixeddata}
+\end{table}
+
+I randomly select 17~181 sentences from section 02-21 of WSJ corpus as training data and similarly select 850 sentences from section 22 for test. Then, I add equal amount of sentences from GENIA to create a heterogeneous balanced corpus. 
 
 
 % I use the script \texttt{tnt-diff} that is part of TnT to evaluate the POS tagging results  and the CoNLL shared task evaluation script\footnote{http://ilk.uvt.nl/conll/software/eval.pl} for evaluating the parsing results. I report the following evaluation metrics for evaluation:
+
+\section{Summary}
 

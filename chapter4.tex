@@ -1,91 +1,54 @@
-\chapter{Corpora}
+% \chapter{Corpora}
 
-In this chapter, I elaborate on the corpora I used for the experiments conducted on domain adaptation for POS tagging and dependency parsing. I use three main corpora as a representative of their domains. I discuss this in detail in the next sections. In addition to classical domain adaptation, the goal is also to achieve a more generic form of domain adaptation, i.e., to evaluate if my system can detect domains in a heterogeneous or mixed dataset. Thus, I create an artificial corpus from the corpora, which contains equal representation of two domains. Although all the corpora used in this thesis are annotated in the PTB style, each has a distinctive syntactic style, which ... ~\todo{dont know how to finish this sentence}.
+% In this chapter, I elaborate on the corpora I used for the experiments conducted on domain adaptation for POS tagging and dependency parsing. I use three main corpora as a representative of their domains. I discuss this in detail in the next sections. In addition to classical domain adaptation, the goal is also to achieve a more generic form of domain adaptation, i.e., to evaluate if my system can detect domains in a heterogeneous or mixed dataset. Thus, I create an artificial corpus from the corpora, which contains equal representation of two domains. Although all the corpora used in this thesis are annotated in the PTB style, each has a distinctive syntactic style, which ... ~\todo{dont know how to finish this sentence}.
 
-%Since the goal is domain adaptation, the corpora used for the experiments need to be reasonably diverse. 
+% %Since the goal is domain adaptation, the corpora used for the experiments need to be reasonably diverse. 
   
-\section{Wall Street Journal section of Penn Treebank (WSJ)}
+% \section{Wall Street Journal section of Penn Treebank (WSJ)}
 
-~\todo{check!!}
-\footnote{https://catalog.ldc.upenn.edu/LDC2000T43}
-This is the Wall Street Journal section~\citep{Marcus:1994:PTA:1075812.1075835} of the Penn Treebank~\citep{santorini:90}. \textcolor{red}{This corpus contains annotated newspaper articles from WSJ from 1987 - 1989. The corpus is annotated for POS tags and parsed in PTB bracketed style. The dependency trees are then derived using the Penn Converter Tool~\citep{johansson2007a} and the inconsistencies are addressed manually}. I use this corpus as a representative of the newspaper domains. There are various different kinds of news articles from financial news, theater critique, weather, sports, politics, etc. Thus, in addition to contributing as a main domain, we can also exploit the corpus for micro-genres or more fine-grained domains. The sentences in WSJ are reasonably longer with an average length of 24 words. I use the standard split for parsing, which is, 02-21 for training, 22 for test and 23 for validation. Some of the example sentences from WSJ are as given below.  ~\todo{EXAMPLES}
+% ~\todo{check!!}
+% \footnote{https://catalog.ldc.upenn.edu/LDC2000T43}
+% This is the Wall Street Journal section~\citep{Marcus:1994:PTA:1075812.1075835} of the Penn Treebank~\citep{santorini:90}. \textcolor{red}{This corpus contains annotated newspaper articles from WSJ from 1987 - 1989. The corpus is annotated for POS tags and parsed in PTB bracketed style. The dependency trees are then derived using the Penn Converter Tool~\citep{johansson2007a} and the inconsistencies are addressed manually}. I use this corpus as a representative of the newspaper domains. There are various different kinds of news articles from financial news, theater critique, weather, sports, politics, etc. Thus, in addition to contributing as a main domain, we can also exploit the corpus for micro-genres or more fine-grained domains. The sentences in WSJ are reasonably longer with an average length of 24 words. I use the standard split for parsing, which is, 02-21 for training, 22 for test and 23 for validation. Some of the example sentences from WSJ are as given below.  ~\todo{EXAMPLES}
+% \begin{itemize}
+%     \item In an Oct. 19 review of " The Misanthrope " at Chicago 's Goodman Theatre ( " Revitalized Classics Take the Stage in Windy City , " Leisure & Arts ) , the role of Celimene , played by Kim Cattrall , was mistakenly attributed to Christina Haag .
+%     \item Japanese culture vs. American culture is irrelevant .
+%     \item Las Vegas promises , or threatens , to become a giant carnival , with rooms to be had for \$ 45 a day or less , for visitors uninspired solely by gambling  .
+%     \item To avoid default , lawmakers must pass legislation raising the limit to \$ 3.12 trillion from \$ 2.80 trillion by next Wednesday , according to the Treasury .
+     
+% \end{itemize}
 
-\section{GENIA Corpus}
+% \section{GENIA Corpus}
 
-The GENIA Corpus~\citep{tateisi:tsujii:04} comprises of biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. I use GENIA 1.0 trees~\cite{Ohta:2002:GCA:1289189.1289260} created in the Penn Treebank format\footnote{http://nlp.stanford.edu/~mcclosky/biomedical.html}. The treebank is converted to dependencies using pennconverter~\cite{johansson2007a}. The tagset used in GENIA is based on the Penn Treebank tagset, but it uses the tags for proper names and symbols only in very restricted contexts. This treebank serves as a representative of biomedical domain for my experiments. Clearly, this is very distinct from WSJ in terms of the nature of the content. Some of the sentences from the corpus are shown below.~\todo{EXAMPLES}
+% The GENIA Corpus~\citep{tateisi:tsujii:04} comprises of biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. I use GENIA 1.0 trees~\cite{Ohta:2002:GCA:1289189.1289260} created in the Penn Treebank format\footnote{http://nlp.stanford.edu/~mcclosky/biomedical.html}. The treebank is converted to dependencies using pennconverter~\cite{johansson2007a}. The tagset used in GENIA is based on the Penn Treebank tagset, but it uses the tags for proper names and symbols only in very restricted contexts. This treebank serves as a representative of biomedical domain for my experiments. Clearly, this is very distinct from WSJ in terms of the nature of the content. Some of the sentences from the corpus are shown below.~\todo{EXAMPLES}
+% \begin{itemize}
+%     \item AP-1 is an integral component of the nuclear factor of activated T cells ( NFAT ) transcriptional complex , which is required for interleukin 2 gene expression in T cells .
+%     \item The data further indicate that the IL-7R alpha chains are directly involved in the activation of JAKs and STATs and have a major role in proliferative signaling in precursor B cells .
+%     \item Gel mobility shift assays and DNase I footprinting demonstrated that GM3 formed a sequence-specific collinear triplex with its double-stranded DNA target .
+%     \item Generation of CD1+RelB+ dendritic cells and tartrate-resistant acid phosphatase-positive osteoclast-like multinucleated giant cells from human monocytes . 
+% \end{itemize}
 
+% \section{CReST Corpus}
 
-\section{CReST Corpus}
+% The CReST corpus~\citep{eberhard2010indiana} constitutes of natural language dialogues between two individuals performing a ``cooperative, remote, search task" (CReST). This is a multimodal corpus which is annotated for speech signals and their corresponding transcriptions. The transcribed text is annotated in PTB format for constituent trees. These constituent trees are converted to dependency trees using Penn Converter~\citep{johansson2007a}. Since this is transcribed from spoken dialogues, the average length of sentence is 7. In terms of linguistic factors, CReST has a subset of WSJ's dependency labels with 10 new labels added. A few examples of the CReST corpus are given below:
+% \todo{EXAMPLES}
 
-The CReST corpus~\citep{eberhard2010indiana} constitutes of natural language dialogues between two individuals performing a cooperative, remote, search task (CReST). This is a multimodal corpus which is annotated for speech signals and their corresponding transcriptions.
+% \begin{itemize}
+%     \item um to the right like right at the edge is
+%     \item it's like as soon - like if I were to close the door it's right next to like the  bottom of the floor like where the door closes
+%     \item and at the other end of that little hallway
+%     \item the - the - okay so you know where the cardboard box is where I told you ? 
+% \end{itemize}
+% % \begin{table}[t]
+% % \centering
+% % \begin{tabular}{|l|} \hline
+% % um to the right like right at the edge is \\ \hline
+% % it's like as soon - like if I were to close the door it's right next to like the  bottom of the \\ floor like where the door closes \\ \hline
+% % \end{tabular}
+% % \caption{My caption}
+% % \label{my-label}
+% % \end{table}
 
-
-% \subsection{Data Sets}
-
-% For our experiments, we use the Wall Street Journal (WSJ) section of
-% the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus \cite{tateisi:tsujii:04}. Both corpora use the Penn
-% Treebank POS tagset \cite{santorini:90} with minor differences: The tagset used in
-% GENIA is based on the Penn Treebank tagset, but it uses the tags for
-% proper names and symbols only in very restricted contexts. 
-
-% For the WSJ corpus, we extract the POS annotation from the
-% syntactically annotated corpus. The GENIA Corpus comprises biomedical
-% abstracts from Medline, and it is annotated on different
-% linguistic levels, including POS tags, syntax, coreference, and
-% events, among others. We use GENIA 1.0 trees~\cite{Ohta:2002:GCA:1289189.1289260} created in the Penn Treebank format\footnote{http://nlp.stanford.edu/~mcclosky/biomedical.html}. Both treebanks were converted to dependencies using pennconverter~\cite{johansson2007a}.
-
-% For our experiments, we need a balanced data set, both for the training and
-% the test set. Since GENIA is rather small and since there is no standard data split for GENIA, we decided to extract the last 850 sentences for the test set. The remaining 17~181 sentences are used for training. For WSJ, we chose the same number of sentences for both training and the test set, the training sentences are selected randomly from sections 02-21 and the test sentences from section 22.\ignore{SK: is that correct?} 
-
-
-
-
-% \section{Corpus}
-% \todo[inline]{EACL+ICON}
-
-% \subsection{Wall Street Journal section of Penn Treebank (WSJ)}
-% WSJ~\cite{Marcus:1994:PTA:1075812.1075835} - This is the Wall Street Journal section of the Penn Treebank~\cite{santorini:90}. This dataset consists of newspaper articles/reports from the financial domain as well as reports on politics, weather, etc. This is the representative of the newspaper domain.
-
-% \subsection{Data Sets}
-
-
-% For our experiments, we use the Wall Street Journal (WSJ) section of the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus (version 3.02) \cite{tateisi:tsujii:04}. Both corpora use the Penn Treebank POS tagset \cite{santorini:90} with minor differences.%, as described in section \ref{sec:q1}.
-
-% For the WSJ corpus, we extract the POS annotation from the syntactically annotated corpus. The GENIA Corpus comprises biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. We use the POS tagged version. For WSJ, we use the standard data split for parsing:  using sections 02-21 as training data and section 22 as our test set. We reserve section 23 for future parsing expert experiments.
-
-% \subsection{Data Sets}
-% In our current work, we focus on two domains: financial news articles and dialogues in a collaborative task.
-% We use the Wall Street Journal \cite{Marcus:1994:PTA:1075812.1075835} and the CReST corpus~\cite{eberhard2010indiana} as representative corpora for these two domains. For both corpora, we use teh dependency version: CReST was originally annotated in constituents and dependencies, the Penn Treebank was automatically converted to dependencies using \textit{pennconverter} \cite{johansson2007a}. %Wall Street Journal consists of financial articles, news, etc. CReST corpus, on the other hand, comprises of dialogues recorded during a collaborative task.%natural language dialogues between two people, who carry out a certain task with the help of each other. 
-% %%SK check numbers? - x
-
-% These corpora are very dissimilar in nature. On an average, the length of the sentences for WSJ is 24 and 7 for CReST. In terms of linguistic factors, CReST has a subset of WSJ's dependency labels with 10 new labels added. %and 
-% %%SK why do we care about POS tags? should that be dep labels? - atr: because I was thinking this might also show how different the corpora are, but its not needed.
-% %has 14 different part of speech tags than WSJ. 
-% Example sentences from each corpora are shown in table~\ref{tab:samplesentences}. We use WSJ as the source domain and CReST as the target domain.  %We create a parsing model using the MATE parser~\cite{bohnet:2010:PAPERS,bohnet2010very}. We then parse sentences from CReST using this model. %Since the source domain (WSJ) and the target domain (CReST) have differences in dependency label annotation, this introduces some errors in the resulting parse. 
-
-% \begin{table}[!t]
-% \centering
-% \begin{tabular}{l|l}
-% \hline
-% WSJ   & \begin{tabular}[c]{@{}l@{}}
-% In an Oct. 19 review of " The Misanthrope " at Chicago 's Goodman Theatre \\ ( " Revitalized Classics Take the Stage in Windy City , " Leisure \& Arts ) , \\ the role of Celimene , played by Kim Cattrall , was mistakenly attributed \\ to Christina Haag .\end{tabular} \\ \hline
-% CReST & \begin{tabular}[c]{@{}l@{}}
-% it's like as soon - like if I were to close the door it's right next to like the \\ bottom of the floor like where the door closes 
-% \end{tabular} \\ \hline
-% %so I went through some - I went through the second room right? \\ \hline    
-% %can I tell you where that is?   
-% \end{tabular}
-% \caption{Sample sentences from Wall Street Journal (WSJ) \& CReST corpus}
-% \label{tab:samplesentences}
-% \end{table}
-
-
-
-% \paragraph{Target Domain}
-% The CReST corpus consists of 23 dialogues that were manually annotated for dependencies. We randomly select 19 dialogues as our training data for the TBL algorithm and the rest as test. 
-% Since the system needs to learn rule hypotheses from  incorrect predictions of the source domain parser, 
-% we can safely ignore sentences that were parsed completely correctly. For the test data, we use all the sentences from the designated dialogues (with correct and incorrect dependency label predictions). 
-% %As a part the training part of Transformation Based Error Driven Learning (TBL), the system needs to learn rule hypotheses from the incorrect dependency label prediction, we work on the sentences which show errors in dependency labels. 
+% I use CReST as a representative target domain in my experiments. The CReST corpus consists of 23 dialogues that were manually annotated for dependencies. I randomly select 19 dialogues as my training data for the TBL algorithm and the rest as test. Since the system needs to learn rule hypotheses from incorrect predictions of the source domain parser, I can safely ignore sentences that were parsed completely correctly\footnote{Details about the split are discussed in Chapter TBL \atrcomments{TBD}}. For the test data, I use all the sentences from the designated dialogues (with correct and incorrect dependency label predictions). 
 % Table~\ref{tab:sentdiv} shows the division of sentences for training and test.
 
 % \begin{table}[t]
@@ -99,5 +62,107 @@ The CReST corpus~\citep{eberhard2010indiana} constitutes of natural language dia
 % \caption{Target domain training and test set for TBL}
 % \label{tab:sentdiv}
 % \end{table}
+
+% \section{WSJ-GENIA mixed corpus (WSJ+GENIA)} ~\label{sec:wsjgeniamixedcorpus}
+
+% Since my objective is to identify domains from a heterogeneous dataset and then adapt POS taggers and dependency parsers to the corresponding domain, I need a dataset which contains sentences from different domains. In order to test my hypothesis, I create an artificial corpus by incorporating data from WSJ as well as the GENIA corpus in equal measure. 
+
+% \begin{table}[t]
+% \centering
+% \begin{tabular}{l|c|c}
+%       & Training Set & Test Set   \\ \hline
+% WSJ   & 17~181  & 850        \\
+% GENIA & 17~181  & 850        \\ \hline
+% Total & 34~362  & 1~700 \\ \hline
+% \end{tabular}
+% \caption{Overview of the mixed dataset (WSJ+GENIA)}
+% \label{tab:mixeddata}
+% \end{table}
+
+% I randomly select 17~181 sentences from section 02-21 of WSJ corpus as training data and similarly select 850 sentences from section 22 for test. Then, I add equal amount of sentences from GENIA to create a heterogeneous balanced corpus. 
+
+% \section{Summary}
+
+% \atrcomments{TBD}
+
+% % \subsection{Data Sets}
+
+% % For our experiments, we use the Wall Street Journal (WSJ) section of
+% % the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus \cite{tateisi:tsujii:04}. Both corpora use the Penn
+% % Treebank POS tagset \cite{santorini:90} with minor differences: The tagset used in
+% % GENIA is based on the Penn Treebank tagset, but it uses the tags for
+% % proper names and symbols only in very restricted contexts. 
+
+% % For the WSJ corpus, we extract the POS annotation from the
+% % syntactically annotated corpus. The GENIA Corpus comprises biomedical
+% % abstracts from Medline, and it is annotated on different
+% % linguistic levels, including POS tags, syntax, coreference, and
+% % events, among others. We use GENIA 1.0 trees~\cite{Ohta:2002:GCA:1289189.1289260} created in the Penn Treebank format\footnote{http://nlp.stanford.edu/~mcclosky/biomedical.html}. Both treebanks were converted to dependencies using pennconverter~\cite{johansson2007a}.
+
+% % For our experiments, we need a balanced data set, both for the training and
+% % the test set. Since GENIA is rather small and since there is no standard data split for GENIA, we decided to extract the last 850 sentences for the test set. The remaining 17~181 sentences are used for training. For WSJ, we chose the same number of sentences for both training and the test set, the training sentences are selected randomly from sections 02-21 and the test sentences from section 22.\ignore{SK: is that correct?} 
+
+
+
+
+% % \section{Corpus}
+% % \todo[inline]{EACL+ICON}
+
+% % \subsection{Wall Street Journal section of Penn Treebank (WSJ)}
+% % WSJ~\cite{Marcus:1994:PTA:1075812.1075835} - This is the Wall Street Journal section of the Penn Treebank~\cite{santorini:90}. This dataset consists of newspaper articles/reports from the financial domain as well as reports on politics, weather, etc. This is the representative of the newspaper domain.
+
+% % \subsection{Data Sets}
+
+
+% % For our experiments, we use the Wall Street Journal (WSJ) section of the Penn Treebank \cite{marcus:kim:ea:94} and the GENIA Corpus (version 3.02) \cite{tateisi:tsujii:04}. Both corpora use the Penn Treebank POS tagset \cite{santorini:90} with minor differences.%, as described in section \ref{sec:q1}.
+
+% % For the WSJ corpus, we extract the POS annotation from the syntactically annotated corpus. The GENIA Corpus comprises biomedical abstracts from Medline, and it is annotated on different linguistic levels, including POS tags, syntax, coreference, and events, among others. We use the POS tagged version. For WSJ, we use the standard data split for parsing:  using sections 02-21 as training data and section 22 as our test set. We reserve section 23 for future parsing expert experiments.
+
+% % \subsection{Data Sets}
+% % In our current work, we focus on two domains: financial news articles and dialogues in a collaborative task.
+% % We use the Wall Street Journal \cite{Marcus:1994:PTA:1075812.1075835} and the CReST corpus~\cite{eberhard2010indiana} as representative corpora for these two domains. For both corpora, we use teh dependency version: CReST was originally annotated in constituents and dependencies, the Penn Treebank was automatically converted to dependencies using \textit{pennconverter} \cite{johansson2007a}. %Wall Street Journal consists of financial articles, news, etc. CReST corpus, on the other hand, comprises of dialogues recorded during a collaborative task.%natural language dialogues between two people, who carry out a certain task with the help of each other. 
+% % %%SK check numbers? - x
+
+% % These corpora are very dissimilar in nature. On an average, the length of the sentences for WSJ is 24 and 7 for CReST. In terms of linguistic factors, CReST has a subset of WSJ's dependency labels with 10 new labels added. %and 
+% % %%SK why do we care about POS tags? should that be dep labels? - atr: because I was thinking this might also show how different the corpora are, but its not needed.
+% % %has 14 different part of speech tags than WSJ. 
+% % Example sentences from each corpora are shown in table~\ref{tab:samplesentences}. We use WSJ as the source domain and CReST as the target domain.  %We create a parsing model using the MATE parser~\cite{bohnet:2010:PAPERS,bohnet2010very}. We then parse sentences from CReST using this model. %Since the source domain (WSJ) and the target domain (CReST) have differences in dependency label annotation, this introduces some errors in the resulting parse. 
+
+% % \begin{table}[!t]
+% % \centering
+% % \begin{tabular}{l|l}
+% % \hline
+% % WSJ   & \begin{tabular}[c]{@{}l@{}}
+% % In an Oct. 19 review of " The Misanthrope " at Chicago 's Goodman Theatre \\ ( " Revitalized Classics Take the Stage in Windy City , " Leisure \& Arts ) , \\ the role of Celimene , played by Kim Cattrall , was mistakenly attributed \\ to Christina Haag .\end{tabular} \\ \hline
+% % CReST & \begin{tabular}[c]{@{}l@{}}
+% % it's like as soon - like if I were to close the door it's right next to like the \\ bottom of the floor like where the door closes 
+% % \end{tabular} \\ \hline
+% % %so I went through some - I went through the second room right? \\ \hline    
+% % %can I tell you where that is?   
+% % \end{tabular}
+% % \caption{Sample sentences from Wall Street Journal (WSJ) \& CReST corpus}
+% % \label{tab:samplesentences}
+% % \end{table}
+
+
+
+% % \paragraph{Target Domain}
+% % The CReST corpus consists of 23 dialogues that were manually annotated for dependencies. We randomly select 19 dialogues as our training data for the TBL algorithm and the rest as test. 
+% % Since the system needs to learn rule hypotheses from  incorrect predictions of the source domain parser, 
+% % we can safely ignore sentences that were parsed completely correctly. For the test data, we use all the sentences from the designated dialogues (with correct and incorrect dependency label predictions). 
+% % %As a part the training part of Transformation Based Error Driven Learning (TBL), the system needs to learn rule hypotheses from the incorrect dependency label prediction, we work on the sentences which show errors in dependency labels. 
+% % Table~\ref{tab:sentdiv} shows the division of sentences for training and test.
+
+% % \begin{table}[t]
+% % \centering
+% % \begin{tabular}{l|l|c|c}
+% % & \multirow{2}{*}{\# Dialogues} & \multicolumn{2}{c}{\# Sentences} \\ \cline{3-4}
+% %  &  & \multicolumn{1}{l|}{with errors} & \multicolumn{1}{l}{without errors} \\ \hline
+% % Training Set & \multicolumn{1}{|c|}{19} & 4384 & 459 \\
+% % Test Set & \multicolumn{1}{|c|}{4} & 831 & 85 \\ \hline
+% % \end{tabular}
+% % \caption{Target domain training and test set for TBL}
+% % \label{tab:sentdiv}
+% % \end{table}
 
 
