@@ -1,6 +1,162 @@
 \chapter{Domain Adaptation}
-\todo[inline]{domain adaptation lit review+research questions}
+%\todo[inline]{domain adaptation lit review+research questions}
 
-Domain adaptation is a well studied problem in machine learning and natural language processing. Usually, there is a plenty of labeled data available for one domain (also known as the source domain) but nearly not enough or in some cases, none available from a different domain (also known as target). The challenge in that case, is to apply well performing systems from source domain and adapt it the target domain. In most problems, this results in a drop in performance, sometimes severe. The same holds true for POS tagging and dependency parsing. These systems perform well when trained and tested on datasets that are predominantly in the same text domain. However, there is a considerable decrease in accuracy if the domains under consideration, are markedly different. It is a well-studied problem for POS tagging and dependency parsing (more so for dependency parsing) but the improvement proposed by these systems have been negligible at best. This is mainly due to unavailability of annotated data from target domain. \cite{daume:07} notes that this problem is ``frustratingly easy'' when some annotated data  is available from the target domain  and ``frustratingly hard'' if no such target data is available~\citep{dredze:blitzer:ea:07}. 
+\section{Introduction}
 
+Domain adaptation is a well studied problem in the field of machine learning. Supervised machine learning algorithms assume that the datasets are taken from the same distribution. But in reality, that is hardly the case. The problem is characterized by the availability of plenty of labeled data from some domains, but nearly not enough or sometimes, none at all, from other domains. Thus, the challenge is to implement the well-performing system from a domain with an abundance of training examples and generalize it to another domain with little or no training examples. However, this is a challenging task. In most cases, apply a model trained on data from one domain to another domain causes a significant drop in performance. The problem is more complicated for language. Although datasets are available from myriad sources such as financial reports, newspapers, biomedical texts, human conversations, etc., obtaining annotated data from these sources can prove to be extremely difficult. A lot of these data sources are annotated by human annotators. However, manual annotation can be extremely expensive and time consuming owing to the large volumes of available data. Difference syntactic styles among data from different sources or domains could also be a potential problem in applying well-performing systems from one domain to another. E.g., if we consider English language, a system trained on a dataset from Wall Street Journal would misapprehend certain syntactic and stylometric nuances of a dataset extracted from biomedical texts. Therefore, the challenge lies in effectively adapt/generalize well performing systems from linguistically resourceful domains to that of the ``resource-poor" domains. 
+
+Domain adaptation, which is also addressed by transfer learning in machine learning, can be further subdivided into the following commonly occurring sub-problems~\citep{li2012literature}.
+\begin{itemize}
+    \item Labeled data is available from source, but no labeled data is available from target.
+    \item Labeled data is available from both source and target, however, the amount of labeled data from target is small.
+\end{itemize}
+
+ 
+Similar to other natural language processing tasks, the problem of domain adaptation is quite challenging for POS tagging and dependency parsing. These systems perform well when trained and tested on datasets that are predominantly in the same text domain. However, there is a considerable decrease in accuracy if the domains under consideration, are markedly different. It is a well-studied problem for POS tagging and dependency parsing (more so for dependency parsing) but the improvement proposed by these systems have been negligible at best. This is mainly due to unavailability of annotated data from target domain~\citep{dredze:blitzer:ea:07}. 
+
+\section{Domain Adaptation in Part of Speech Tagging}
+
+Compared to POS tagging, there has been more work done in parsing. Most often, POS tagging is serves as the predecessor for dependency parsing. \cite{yoshida2007ambiguous} argues that the quality of POS tagger has an important impact on the parsing decisions. They show that they can improve both in-domain and out-of-domain accuracy for an HPSG parser by using multiple weighted POS tags~\todo{more?}. Following the idea of this paper, I conduct a similar experiment chapter~\ref{chap:domainexperts} to judge the effectiveness of using POS tags adapted for a specific domain, in the dependency parsing process. 
+
+~\cite{blitzer:mcdonald:ea:06} introduced structural correspondence learning (SCL) for domain adaptation. They evaluated the method on POS tagging and showed significant improvement in tagging target domain data. They use Wall Street Journal (WSJ) as the source domain and MEDLINE abstracts (biomedical) as the target domain. They address the situation where target domain does not have annotated data as well as how the performance can be further improved when the target domain has some annotation. The core idea behind SCL is to find pivot features in both source and target domain. These are commonly occurring features in both domains and also exhibit similarity in behavior. E.g., a noun is typically followed by a verb on the right. Hence this can be considered as a pivot feature because these features would have identical behavior in both domains. Thus, common nouns are most likely to behave in an analogous manner irrespective of the domain. Once the pivot features are identified, the correlations are estimated with the non-pivot features to determine the ``correspondence". Initial step is prediction of pivot features. I.e., this is a binary classification problem which involves answering the question of whether, a given instance is indicative of a pivot feature. The learned weight vectors presents the covariance matrix of the pivot features with the non-pivot features. Alternating structural optimization (ASO)~\citep{ando2005framework} learns the correlations between the pivot and non-pivot features and MIRA~\citep{crammer2006online} is as the supervised classification algorithm following the success of the algorithm in sequence analysis and dependency parsing~\citep{McDonald:2005:NDP:1220575.1220641,McDonald:2005:OLT:1219840.1219852}. The results indicate the considerable success of this method. SCL surpasses the supervised and semi-supervised tagger baseline with no annotated target data, with an improvement of around 1\%. Hence they successfully extend a POS tagger trained on WSJ to MEDLINE abstracts. Furthermore, they leverage the available labeled data and combine it with SCL using classifier combination techniques by \cite{florian2004statistical}. They also demonstrate that the POS tags using SCL causes a better performance in dependency parsing as compared to a source domain supervised tagger baseline. Similar to \cite{blitzer:mcdonald:ea:06}, I use a similar dataset for the mixed domain adaptation experiments with WSJ and GENIA as representative of two distinct domains. 
+
+Self-training and co-training based methods have also been in prominence for POS tagging. \cite{clark:curran:ea:03} used agreement-based co-training to improve the performance of the POS tagger on WSJ data. They implement co-training by using two POS taggers - TnT~\citep{brants:00.2} and C \& C~\citep{curran2007linguistically}, which is the reimplementation of the maximum entropy tagger~\citep{ratnaparkhi1996maximum} improvised for better speed. The author maintain a cache of unlabeled sentences which are iteratively labeled by each tagger and are subsequently added to the training sets for each tagger. The authors achieve the effectiveness of co-training by simultaneously adding data labeled by one tagger to another and viceversa, as opposed to using different feature sets. Since score-based selection of labeled sentences is not possible with TnT, the authors implemented naive and agreement-based selection. In the naive method, all the sentences labeled by one tagger is added to another and viceversa. The agreement-based method refines this by selecting the subset of the labeled sentences which displays maximum agreement between the taggers. The naive method outperforms the agreement-based method for larger cache size. For self-training, i.e., when the tagger uses its own labeled cache at every iteration as opposed to the other tagger, the improvement is not as considerable as co-training. TnT shows around 1\% improvement while C\&C remains the same. However, for co-training, the overall results indicate a 5\% increase in accuracy for TnT and almost 12\% for C \& C, thus establishing the effectiveness of the method. Co-training and self-training based methods have been explored for domain adaptation purposes as well. Similar to the work of \cite{clark:curran:ea:03}, \cite{kuebler:baucom:11} investigates an agreement-based method for domain adaptation for POS tagging. They conduct experiments considering WSJ as the source domain and natural language dialogues corpora (CReST \& HCRC Map Task Corpus~\citep{anderson1991hcrc}). They estimate the tagger agreement by using three taggers - TnT, Maximum-Entropy Lexicon-Enriched Tagger (MElt)~\citep{denis2009coupling} \& SVM Tool~\citep{gimenez2004svmtool}. The authors essentially add target domain sentences to augment the training set, in addition to the WSJ sentences which serve as the source domain. These sentences are selected based on the agreement among all the POS taggers. Since this selects a rather small subset of the target domain sentences, the authors used 2 out of 3 agreement for selecting sentences. I.e., add the sentences where two out of three taggers agree. The authors also evaluated the use of trigrams instead of whole sentences and reached 1\% improvement in accuracy by using the trigrams based on POS tagger agreements. 
+
+%The target domain sentences used in the training set are labeled by all the POS taggers and the sentences for which there is an agreement, are added to the training set.
+
+\cite{schnabel2014flors} introduced FLORS, a part of speech tagger built exclusively for domain adaptation. POS tagging is generally modeled as a problem of finding optimal sequence of tags. However, FLORS considers the local context of a word and uses distributional features. This enables the tagger to better predict tags of unknown words as well as previously unseen tags for known words. Hence it is particularly advantageous in domain adaptation scenario. It treats POS tagging as a multiclass classification problem with the one-vs-all setup. I.e., each POS tag is a class and thus there are $k$ binary classifiers where $k$ is the number of POS tags. The feature representations are distributional counts, 
+
+\section{Domain Adaptation in Dependency Parsing}
+
+The work in this area is mainly driven by the unavailability of data in the target domain as compared to the source domain. \cite{dredze:blitzer:ea:07} notes that the task is ``frustratingly hard" if no target data is available. The 2007 CoNLL shared Task~\citep{nivre2007conll} focused on domain adaptation in addition to multilingual adaptation for dependency parsing. The primary goal of the shared task was to emulate the situation described as the sub-problem of domain adaptation - unavailability of labeled target domain data. The source domain was Wall Street Journal and the participants were provided with a labeled dataset. Development datasets came from the domains such as biomedical abstracts, chemical abstracts, and parent child dialogues. In addition to these datasets, an unlabeled dataset was also provided which could be leveraged to create better performing systems. This was motivated by \cite{McClosky:2006:RSP:1220175.1220218,McClosky:2006:ESP:1220835.1220855}'s work on leveraging unlabeled data using self training to improve overall accuracy of the parser. Their model reached a 1.1\% improvement over the state-of-the-art on Wall Street Journal dataset. However, \citep{McClosky:2006:RSP:1220175.1220218,McClosky:2006:ESP:1220835.1220855}
+
+
+
+\section{Summary}
+%\cite{daume:07} notes that this problem is ``frustratingly easy'' when some annotated data  is available from the target domain  and ``frustratingly hard'' if no such target data is available~\citep{dredze:blitzer:ea:07}. 
+
+%%PAPERS
+%%PARSING
+% \cite{plank2011effective}
+
+
+
+
+
+% \cite{mcclosky2010automatic}
+% \cite{dredze2007frustratingly}
+% \cite{sagae2007dependency}
+% \cite{attardi2007multilingual}
+% \cite{attardi2007tree}
+
+
+% \cite{kawahara2008learning}
+% \cite{Finkel:2009:HBD:1620754.1620842}
+% \cite{mcclosky2010automatic}
+% \cite{mcclosky:charniak:ea:10}
+% \cite{McClosky:2006:ESP:1220835.1220855,McClosky:2006:RSP:1220175.1220218}
+% \cite{yu2015domain}
+
+
+% %%POS TAGGING
+\cite{clark:curran:ea:03}
+\cite{kuebler:baucom:11}
+\cite{sagae2007dependency}
+\cite{blitzer:mcdonald:ea:06}
+\cite{khan:dickinson:ea:13.2}
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%EACL%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Previous work in this area have largely focused on the classic domain adaptation problem. The closest comparison to my approach is the one by \cite{plank2011effective}. However, the problem they address is creating a specialized training set for every document they need to parse. They pick sentences from the training set which are most similar to test set. Topic distribution is thus used as features for similarity metrics. My approach is a more general, because I create more general domain training ``experts". My approach also draws parallel with the work on ``multiple source parse adaptation" by \cite{mcclosky2010automatic}. In this approach the parser is trained on multiple domains and learned the statistics as well as  domain differences which affect the parser accuracy. This is similar to my approach as I create experts based on topics , and each expert learns the specifics of the particular topic with which it is associated.
+
+% To the best of our knowledge, there is little direct correlation between our work on POS tagging and parsing experts to that of the previous work done in the area.
+% However, our work is comparable to domain adaptation since we create experts to tag and parse heterogeneous datasets. The work in this is area is largely driven by the unavailability of examples from the target domain. Our work focuses on creating experts using topic modeling which will be able to tag and parse target domain sentences belonging to a specific topic. Compared to POS tagging, there has been significant work on domain adaptation in dependency parsing.
+
+% % \newcite{dredze2007frustratingly} found that problems in domain adaptation are compounded  by differences in the annotation schemes between the treebanks.
+% % \newcite{blitzer:mcdonald:ea:06} experimented with structural correspondence learning (SCL), which focuses on finding frequently occurring pivot features that occur commonly across domains in the unlabeled data but equally characterize source and target domains. Similar to our work, Blitzer et al.\ used the WSJ as the source and MEDLINE abstracts as the target domain. They established that SCL reaches better results in both POS tagging and parsing than supervised and semi-supervised learning even when there is no training data available in the target domain.
+
+% % For POS tagging,~\newcite{clark:curran:ea:03} applied an agreement-based and a baseline co-training method by using a Markov model tagger and a maximum entropy tagger. In case of the baseline, all the sentences from one tagger are added to train the other whereas in the agreement-based method, both taggers have to reach to the same decision for a sentence to be added to the training.
+% % \newcite{kuebler:baucom:11} used a similar concept but with three different taggers and showed that selecting sentences as well as sequences of words for which all taggers agree yield the highest gains.
+% % \newcite{sagae2007dependency} emulate a single iteration of co-training by using MaxEnt and SVM, selecting the sentences where both models agreed and adding these sentences to the training set. Their approach reached the highest results on the domain adaptation task of CoNLL 2007~\cite{nilsson2007conll}.
+
+% % In the CoNLL 2007 shared task on domain adaptation for dependency parsing, 
+% % \newcite{attardi2007multilingual} used a tree revision method that corrects the mistakes caused by the base parser for the target domain.
+% % Later, \newcite{kawahara2008learning} employed a single parser approach using a second order MST parser and combining labeled data from the known domain with unlabeled data of the new domain by simple concatenation and judging the efficacy of the resulting most reliable parses.
+% % \newcite{Finkel:2009:HBD:1620754.1620842} devised a new model for named entity recognition as well as dependency parsing by using hierarchical Bayesian prior. This is influenced by the notion that different domains may have different features specific to each domain.  However, instead of applying a constant prior over all the parameters,  a hierarchical Bayesian global is used. This enables sharing of information across domains but also allows to override this information if there is ample evidence. 
+
+% % \newcite{mcclosky2010automatic} designed the problem as ``multiple source parse adaptation", in which a parser was trained on multiple domains and learned the statistics as well as domain differences which affects the parser accuracy. Their parser outperformed the state-of-the-art baselines. This approach is similar to our work as we create experts based on topics, and each expert learns the specifics of the particular topic with which it is associated.
+
+% % The closest approach to ours is the one by \newcite{plank2011effective}, who employ a similar idea of using topic modeling for creating parsing experts. However, their task is to determine in a domain adaption setting which sentences of an out-of-domain training set are the most similar to the test set. Thus, they create a specialized training set for every document they need to parse while we create more general experts. In the work by  \newcite{plank2011effective},  the topic distribution in a document is used as features for their similarity metrics.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%RANLP%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \section{Related Work} \label{relatedwork}
+
+% Our work cannot exactly be called domain adaptation since we automatically determine a range of genres and then train experts per genre while domain adaptation starts from a general model and adapts it to a specific genre. However, the two research questions are closely related and generally face the same problems. Our work is closest to the work by \newcite{plank2011effective} and \newcite{mcclosky:charniak:ea:10}. McClosky et al.\ address the problem of parse adaptation in the case of multiple sources. In their setting, a parser learns the domain differences and various statistics from being trained on datasets from multiple domains. Our approach is comparable to the extent that both approaches profit from a range of domains. \newcite{plank2011effective} adopt an approach where they build a highly specialized training set that is most similar to an  out-of-domain document. They create a specialized expert each time the parser encounters a new document. Our approach is more general than Plank and van Noord's in that we do not create an expert for every new document, but rather create experts per genre. In contrast,  our approach is more fine grained in that we assign individual sentences to genres rather than complete documents. \newcite{plank2011effective} use the topic distribution from LDA as features for determining the most similar training set. This is comparable to our approach of assigning test sentences to the proper genre (but not to the creation of genres). 
+
+% Domain adaptation has been studied more extensively in parsing than in POS tagging.  For POS tagging, \newcite{blitzer:mcdonald:ea:06} have a similar setup to ours, where they train on WSJ data and test on MEDLINE abstracts. They use structural correspondence learning by identifying ``frequently occurring" pivot features which can appropriately represent source as well as target domain. The problem of adapting to a new domain is compounded in cases where no adequate data from the target domain is available. Differences in annotation scheme between the source and target domain can pose additional challenges \cite{dredze2007frustratingly}. In our case, GENIA follows a similar annotation scheme as WSJ with a few differences in assigning POS  tags to names. 
+
+% Agreement based approaches and co-training have been employed for domain adaptation of POS tagging. In the agreement-based method adopted by \newcite{clark:curran:ea:03}, a Markov model tagger and a maximum entropy tagger are used. For a sentence to be included in the training set, both the taggers have to reach a unanimous decision. \newcite{sagae2007dependency} apply a similar approach but using MaxEnt and SVM to simulate an iteration of co-training. \newcite{kuebler:baucom:11} extended this further by demonstrating that an agreement in terms of word sequences rather than complete sentences is more robust and achieves better results.
+
+% In the CoNLL 2007 shared task on domain adaptation for dependency parsing, 
+% \newcite{attardi2007multilingual} adapt an error correction approach to revise mistakes caused by the base parser in the target domain. \newcite{kawahara2008learning} employ a single parser approach using a second order MST parser and combining labeled data from the known domain with unlabeled data of the new domain by simple concatenation and judging the efficacy of the resulting most reliable parses.
+% \newcite{Finkel:2009:HBD:1620754.1620842} devise a  model for dependency parsing by using a hierarchical Bayesian prior based on the  notion that different domains may have different features specific to each domain.  Instead of applying a constant prior over all the parameters,  a hierarchical Bayesian global is used. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%ICON%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \section{Related Work}\label{sec:related}
+
+% We are not aware of any research that directly compares to the
+% research presented here. The closest area is domain adaptation. For
+% this reason, we will cover work on domain adaptation for POS tagging
+% here. However, more work has been done on domain adaptation for
+% parsing. The work in that area seems to fall into two categories:
+% ``frustratingly easy'' when some annotated data from the target domain
+% is available \cite{daume:07} and ``frustratingly hard'' if no such
+% target data is available \cite{dredze:blitzer:ea:07}.
+
+
+% For POS tagging,  \cite{clark:curran:ea:03} used the
+% results of one POS tagger on unannotated data to inform the training
+% of another tagger in a semi-supervised setting using a co-training
+% routine with a Markov model tagger and a maximum entropy tagger. The
+% authors tested both agreement-based co-training, where the sentences
+% are added to training only if the taggers both agree, and naive
+% co-training, where all sentences from one tagger are added to the
+% training of the other, with no filter.   \newcite{kuebler:baucom:11} expanded on this method
+% and used three different taggers to annotate additional data and then
+% select those sentences for which the taggers agree. They found that
+% adding not only complete sentences but also sequences of words where
+% the taggers agree results in the highest gains.  \newcite{khan:dickinson:ea:13.2} investigated the situation where
+% some annotated target data is available. They focused on optimizing
+% the balance between source and target sentences. They found that
+% selecting sentences that are the most similar to the target data
+% results in the highest gains. \newcite{blitzer:mcdonald:ea:06} developed structural correspondence learning, which learns correspondences between two domains in settings where a small set of target sentences is available as well as in an unsupervised setting.  They show an improved performance for POS tagging and for parsing when using the adapted POS tagger.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%TLT%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section{Related Work} \label{sec:related}
+
+% There has been a significant amount of work done on domain adaptation in dependency parsing. The primary challenge of domain adaptation is the unavailability of annotated examples from the target domain. Previous work in this area focused on analyzing how this affects parsing quality and on building systems to bypass the need for having a large amount of target domain data. Although distributional difference between the domains is a common problem,  in general, \citet{dredze2007frustratingly} conclude that domain adaptation is most challenging when there are dissimilarities in annotation schemes between the domains. 
+
+% Domain adaptation for dependency parsing was one of the tasks in the CoNLL 2007 Shared Task. 
+% The shared task was focused on the scenario where there is no data available from the target domain. Out of the 10 systems participating in the domain adaptation task, the highest results (81.06\% LAS; 83.42\% UAS) are achieved by \citet{sagae2007dependency}. To add target domain sentences to the training set, they emulate a single iteration of co-training by using MaxEnt and SVMs, selecting the sentences where both models agreed. The system by \citet{attardi2007tree} (80.40\% LAS; 83.08\% UAS) produced similar results. They use a tree revision method~\cite{attardi2007tree} to correct structural mistakes.  
+% They formulate the problem as a supervised classification task using a multiclass perceptron, where the set of revision rules is the output space and features are based on syntactic and morphological properties of the dependency tree.
+
+
+% A popular approach for domain adaptation is selecting appropriate training data by using self-training or co-training for domain adaptation. Although testing on a single domain, \citet{McClosky:2006:ESP:1220835.1220855,McClosky:2006:RSP:1220175.1220218}  show the effectiveness of using reranking and self training. They achieve an improvement of around 1\% on unlabeled data. 
+% \citet{kawahara2008learning} devised a method to select reliable parses from the output of a single dependency parser, MST parser~\cite{mcdonald2005non}, instead of using an ensemble of parsers for domain adaptation. 
+% They use a self training method and combine labeled data from target domain with unlabeled data from the source by ``concatenation''. To estimate whether a parse is reliable, they apply binary classification using SVM on features such as sentence length, dependency length, unknown words, punctuation, average frequency of words in a sentence. They report a 1\% increase in accuracy over the contemporary state of the art CoNLL shared task results on the shared task data.
+
+% \citet{yu2015domain} applied self-training for domain adaptation using confidence scores to select appropriate parse trees. Their highest improvement in terms of LAS is 1.6\% on the CoNLL data. 
+
+% \shortcite{blitzer:mcdonald:ea:06} used structural correspondence learning (SCL) for POS tagging and parsing to find ``frequently occurring'' pivot features, i.e., features that occur frequently in unlabeled data and equally characterize source and target domains. They used the WSJ as the source and MEDLINE abstracts as the target domain. They established that SCL reaches better results in both POS tagging and parsing than supervised and semi-supervised learning, even when there is no training data available on the target domain. %We assume that we have a small amount of labeled training data available from the target domain for our current experiments.
+
+% Transformation based error driven learning (TBL) was originally developed for POS tagging \cite{brill1992simple,Brill:1995:TEL:218355.218367}.
+% \citet{brill1993automatic} also used this approach to parse text by learning a ``tranformational'' grammar. The algorithm repeatedly compares the bracketed structure of the syntactic tree to the gold standard structure and learns the required transformations in the process. \citet{brill1994rule} also use this technique for prepositional phrase attachment disambiguation.
+
+% Transformation based error driven learning has also been used for information retrieval by \citet{woodley2005applying}.

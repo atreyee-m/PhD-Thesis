@@ -78,8 +78,6 @@ I.e., when we choose the number of topics as 2 \& 10, LDA creates a probabilisti
 \end{itemize}
 
 The inference/parameter estimation step follows the generative step, which requires calculating the posterior distribution of the hidden variables given a sentence. 
-\atrcomments{to be finished ........}
-
 
 
 
@@ -106,7 +104,7 @@ different types of information such as:
 	
 \end{itemize}
 
-\section{POS Tagging}
+\section{POS Tagging}~\label{sec:postaggingmethod}
 
 Part of speech (POS) tagging refers to assigning part of speech tags, which can also be referred to as word class (e.g., nouns, verbs, adjectives) in a sentence. This is an interesting problem since a deep understanding of syntactic structure of a sentence helps in variety of NLP tasks such as question answering, sentiment analysis, opinion mining, etc. Often POS tagging is a precursor step in parsing, which is why, I look at POS tagging in my experiments, as well. Figure~\ref{fig:postag} shows a part-of-speech tagged sentence.
 
@@ -120,7 +118,7 @@ Part of speech (POS) tagging refers to assigning part of speech tags, which can 
 As shown in the figure~\ref{fig:postag}, the task of POS tagging involves classifying words into their corresponding classes such as nouns, verbs, adjectives, etc. The most widely used POS tagset is the Penn Treebank tagset~\citep{Marcus:1994:PTA:1075812.1075835}. It contains 45 POS tag classes. Most of the available corpora use the PTB tagset with some variations. Availability of a tagged corpora is essential for corpus driven POS tagging. 
 
 Broadly, POS tagging can be rule-based~\todo{cite papers cited by Brill}, transformation-based~\citep{brill1992simple} and stochastic. I discuss the process of transformation based error driven POS tagging in greater detail in section~\ref{sec:TBL}. The problem of supervised stochastic part of speech (POS) tagging has been addressed by using generative models such as Hidden Markov Models (HMM)~\citep{brants:00.2} and  discriminative models such as Maximum Entropy Markov Model (MEMM)~\citep{ratnaparkhi1996maximum}. More recently, the deep learning based sequence modeling techniques have gained prominence.~\todo{cite}. %Since I use TnT tagger for my experiments, I will delineate the steps involved in HMM-based POS taggers. 
-I use the TnT (Trigrams'n'Tags) tagger~\cite{brants:00.2} for part of speech tagging experiments. TnT is based on a second order Markov Model and has an elaborate model for guessing the POS tags for unknown words. I use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition frequencies).
+I use the TnT (Trigrams'n'Tags) tagger~\citep{brants:00.2} for part of speech tagging experiments. TnT is based on a second order Markov Model and has an elaborate model for guessing the POS tags for unknown words. I use TnT mainly because of its speed and because it allows the manual inspection of the trained models (emission and transition frequencies).
 
 POS tagging is essentially a sequence labeling task. I.e., given a sequence of words, the problem is to determine the most likely POS tags for the sequence. HMMs are widely used in sequence labeling tasks. These are probabilistic sequence models that take into account that there are observed and hidden events influencing the probability of a sequence. In case of POS tagging, as shown in figure~\ref{fig:postaghmm}, the observed events are words and POS tags are the hidden events.
 
@@ -139,11 +137,22 @@ Typically an HMM has two parts - emission probabilities and transition probabili
     P(w_i|t_i) = \frac{Count(t_i,w_i)}{Count(t_i)}
 \end{align}
     
-The problem, then is to compute the most probable sequence of hidden variables, i.e., POS tags given the observaions, i.e., the words. This is also known as decoding. TnT calculates this by using a second order Markov model, which means that instead of using bigram probabilities as shown in~\ref{eq:transprob}, it uses trigram transition probabilities. Therefore, the most probable tag sequence for a sequence of length $N$, is calculated as:
+The problem, then is to compute the most probable sequence of hidden variables, i.e., POS tags given the observations, i.e., the words. This is also known as decoding. TnT calculates this by using a second order Markov model, which means that instead of using bigram probabilities as shown in~\ref{eq:transprob}, it uses trigram transition probabilities. Therefore, the most probable tag sequence for a sequence of length $N$, is calculated as:
 
 \begin{align}
     \hat{t} = \underset{t_1 ... T_N}{argmax}  \bigg [ \prod_{i=1}^N P(t_i|t_{i-1},t_{i-2}) P(w_i|t_i) \bigg] P(t_{N+1}|t_N)
 \end{align}
+
+The most likely subsequence of tags is generally computed using Viterbi's Algorithm. This is a dynamic programming approach which operated by first computing the probability matrices given the previous observations. Finally the sequence with the highest path probability is selected as the final sequence.
+
+At the first step, Viterbi's algorithm works by setting up a matrix of probabilities, also referred to as a trellis. Each column corresponds to a word (or the observed variable of the HMM) and each row signifies a state in the graph. Each cell is recursively estimated by taking the most probable path that led to the cell. Thus the recursive value of a cell can be formally represented by equation~\ref{eq:viterbi}.
+
+\begin{equation}~\label{eq:viterbi}
+    \delta_t(j) = \max_{i=1}^{N} \delta_{t-1}(i) A_{ij} B_j(w_t)
+\end{equation}
+
+where $\delta_{t-1}$ represents the path probability from the previous step; $A_{ij}$ is the transition probability from state (i.e., the POS tags) $h_i$ to $h_j$; $B_j(w_t)$ shows the emission probability of a word at time step $t$, i.e., $w_t$ at the present state $j$. Another improvement over this algorithm is to store backpointers which stores the previous state leading to the most probable sequence. ~\todo{detail?}
+
 
 To account for data sparsity - not all trigrams have equal representation in the training dataset - smoothing is applied. In TnT, a context independent linear interpolation of $n$-grams is used for smoothing.
 
@@ -162,19 +171,31 @@ and $\hat{P}$ estimates the MLE estimates. The bigram estimate is shown in equat
 \end{equation}
 
 
-
 The values of $\lambda$ are estimated using deleted interpolation~\citep{jelinek1980interpolated}. 
 In TnT, the unknown words are estimated using suffix analysis following the work by~\cite{W93-0420}. Additionally, probability distribution of words around capitalized words contributes further to the disambiguation process.~\todo{detail?} 
 
-The most likely subsequence of tags is generally computed using Viterbi's Algorithm. This is a dynamic programming approach which operated by first computing the probability matrices given the previous observations. Finally the sequence with the highest path probability is selected as the final sequence.~\todo{I think I need to detail?} 
-However, depending on the length of the sentence, the time complexity for Viterbi algorithm can be quadratic. To improve this, beam search is applied. Hence, for each time step, the decoding process now considers the best $n$ hypotheses pruning the rest. TnT implements this to achieve better time complexity than regular Viterbi. 
+% The most likely subsequence of tags is generally computed using Viterbi's Algorithm. This is a dynamic programming approach which operated by first computing the probability matrices given the previous observations. Finally the sequence with the highest path probability is selected as the final sequence.
 
-\todo[inline]{Should I describe MEMMs too? also CRF taggers?}
+% At the first step, Viterbi's algorithm works by setting up a matrix of probabilities, also referred to as a trellis. Each column corresponds to a word (or the observed variable of the HMM) and each row signifies a state in the graph. Each cell is recursively estimated by taking the most probable path that led to the cell. Thus a value of a cell can be formally represented by equation~\ref{eq:viterbi}.
+
+% \begin{equation}~\label{eq:viterbi}
+%     \delta_t(j) = \max_{i=1}^{N} \delta_{t-1}(i) A_{ij} B_j(w_t)
+% \end{equation}
+
+% where $\delta_{t-1}$ represents the path probability from the previous step; $A_{ij}$ is the transition probability from state (i.e., the POS tags) $h_i$ to $h_j$; $B_j(w_t)$ shows the emission probability of a word at time step $t$, i.e., $w_t$ at the present state $j$.
 
 
+Depending on the length of the sentence, the time complexity for Viterbi algorithm can be quadratic. To improve this, beam search is applied. Hence, for each time step, the decoding process now considers the best $n$ hypotheses pruning the rest. TnT implements this to achieve better time complexity than regular Viterbi. 
 
+%\todo[inline]{Should I describe MEMMs too? also CRF taggers?}
 
+In contrast to HMMs which are generative models, Maximum Entropy Markov Models (MEMM) based taggers are discriminative~\citep{ratnaparkhi1996maximum}. Thus, we compute the posterior probability of $P(tag|word)$ directly as opposed to HMMs where we estimate the maximum likelihood based on Bayes' theorem. Intuitively, MEMMs can be thought of as a classifier such as logistic regression and as such we can make use of surrounding words and tags and/or a combination of these as features. To find an optimal tag sequence, a greedy decoding method can be followed, which essentially classifies each word in a sequence from left to right to decide on the best tag for each word. Another way is to use Viterbi algorithm, similar to HMMs but with a modification in recursive step, i.e., replacing the emission (or likelihood) and transition probabilities with the posterior probability as shown in equation~\ref{eq:memm_viterbi}.
+\begin{equation} \label{eq:memm_viterbi}
+    %\delta_{i}(j) = \max_{i=1}^{N} \delta_{i-1}(k)P(s_j|s_k,w_t)
+    \delta_{t}(j) = \max_{i=1}^{N} \delta_{t-1}(i)P(s_j|s_i,w_t)
+\end{equation}
 
+A major concern with both HMM and MEMM based models is that, these lack ``bidirectionality", i.e., these operate from left to right, and as such, are not capable of utilizing the information from the future tags. Conditional Random Fields (CRF) based models can address this issue~\citep{lafferty2001conditional}. CRFs are undirected graphical models and hence at each time step, instead of computing the probability of each tag, CRF calculates log-linear functions over a set of features. More recently, this problem is widely addressed by bi-LSTMs~\citep{huang2015bidirectional,plank2016multilingual}. 
 
 %These tasks generally work well when applied on the dataset from the same domain. However, the performance suffers when source and target are from different domains. The work in the area is largely driven by unavailability of data from the target domain. It is nearly impossible to hand annotate the huge amount of data generated by various sources. Manual annotation is even harder when the syntactic structure of the data differs widely. E.g., the syntactic structure of a newspaper corpus is very different from that of social media or academic journals from biomedical domain or literary works.  Dependency parsing is particularly useful because the dependency relations serve as an important feature to detect negation or multi word expressions, for instance. 
 
@@ -183,7 +204,7 @@ However, depending on the length of the sentence, the time complexity for Viterb
 
 
 
-\section{Dependency Parsing}\todo[inline]{to be fixed}
+\section{Dependency Parsing}%~\todo{fix the sections and stuff for this}
 
 Syntactic parsing refers to the process of extracting and analyzing the syntactic structure or representation of a natural language text. This is very useful is a variety of different domains such as machine translation, information retrieval, question answering \cite{hall2008transition}. More formally, we can define it as a structural prediction problem. Hence, there is an input which are sentences; an output, which are syntactic representation of a sentence;  and a model that maps the input to the output. The input sentence is usually split into tokens. The output is represented as trees. Dependency parsing is a type of syntactic parsing analyses the dependency structure of a sentence based on a dependency grammar. As illustrated in figure~\ref{fig:depParsetree}, the words in a sentence are linked with relations (shown using labeled arrows), also known as dependency relation (dependencies) where one word is the dependent~\footnote{can also be referred to as child} which depends on the head~\footnote{can also be referred to as parent}. In order to simplify the problem to provide a syntactic head to the word which does not have a head, an artificial root is introduced~\cite{kubler2009dependency}. Dependency parsing gained prominence because of the flexibility it provides for free word order languages such as Czech.
 
@@ -193,7 +214,7 @@ The resulting dependency parse is the highest scoring tree. I use MATE~\cite{boh
 The parser is highly efficient in terms of memory utilization and CPU requirements while maintaining the accuracy of the resultant parses.
 %Bohnet reported a 3.5 times increase in speed over the baseline MST parser using a single core CPU and it also requires a lot less memory than the contemporary parsers by using Hash Kernel. The speed increases further by using parallel algorithms and it can be further reduced at the cost of accuracy.
 
-\begin{figure*}[!htb]
+\begin{figure*}[t]
     \centering
     \includegraphics[scale = 0.6]{figures/dep-tree.png}
     \centering
@@ -201,8 +222,8 @@ The parser is highly efficient in terms of memory utilization and CPU requiremen
     \label{fig:depParsetree}
 \end{figure*}
 
-\todo[inline]{this is from the qual paper}
-The process of automatically analyzing dependency structures to an input sentence is referred to as dependency parsing. A dependency tree needs to satisfy the following properties~\cite{kubler2009dependency}:
+%\todo[inline]{this is from the qual paper}
+The process of automatically analyzing dependency structures to an input sentence is referred to as dependency parsing. A dependency tree needs to satisfy the following properties~\citep{kubler2009dependency}:
 \begin{itemize}
 \item A dependency tree needs to have an artificial root which specifies that there there must not exist an arc which comes into the root from another node(word).
 \item A dependency tree must satisfy the spanning property for all the words in a sentence.
@@ -214,11 +235,11 @@ The process of automatically analyzing dependency structures to an input sentenc
 
 There are two different kinds of dependency structures based on which, dependency trees can be categorized into two types. Figure~\ref{fig:proj-non-proj} shows an example illustrating the difference between projective (right) and non-projective (left) trees.  
 
-\begin{figure*}[!htb]
+\begin{figure*}[t]
     \centering
-    \includegraphics[scale = 0.45]{proj-non-proj.png}
+    \includegraphics[scale = 0.5]{figures/proj-non-proj.png}
     \centering
-    \caption{Projective and Non-projective dependency trees~\cite{kubler2009dependency}}
+    \caption{Projective and Non-projective dependency trees~\citep{kubler2009dependency}}
     \label{fig:proj-non-proj}
 \end{figure*}
 
@@ -229,134 +250,33 @@ There are two different kinds of dependency structures based on which, dependenc
 \end{itemize}
 
 
-There are two major approaches for this problems - data-driven and grammar-based. The grammar-based approaches make use of a formal grammar and the problem in this case is defined as - whether the input sentence belongs to the language defined by this formal grammar. In contrast to grammar-based approaches, data-driven approaches utilize machine learning approaches on annotated data from a corpus to parse a given input sentence. Since data-driven approaches rely on machine learning approaches, we will only discuss these methods in the rest of the report.
+There are two major approaches for this problems - data-driven and grammar-based. The grammar-based approaches make use of a formal grammar and the problem in this case is defined as - whether the input sentence belongs to the language defined by this formal grammar. In contrast to grammar-based approaches, data-driven approaches utilize machine learning approaches on annotated data from a corpus to parse a given input sentence. 
+%Since data-driven approaches rely on machine learning approaches, we will only discuss these methods in the rest of the report.
 
 \begin{itemize}
-    \item{Transition-based - }{In a transition-based approach are based on the notion of transition system which is a finite state automaton. An FSA consists of states, transitions, mapping states and input symbols and transitions from initial to final states. The state transition happens on an input to a state. In case of transition based parsing, each of the states represent steps for deriving a dependency tree. These approaches make use of a stack-based technique for parsing. Transition based systems are mostly stack-based. Initially, the stack contains the artificial root and the buffer is empty. There are three kinds of transitions - shift, left and right. This is a bottom-up approach, i.e., for an arc to be constructed between two nodes, it is imperative that the dependent node has already a dependency tree constructed. This approach is also known as arc-standard. There is another approach called arc-eager where the terminal configuration is guided by the state of the buffer. If it is empty the arc-eager system terminates. In addition to the transitions in the arc-standard system, there is an additional transition called reduce. This is a top-down parsing approach as the arcs are added as and when found~ \cite{kubler2009dependency}.
+    
+    \item{Graph-based - }{Graph-based approaches rely on the algorithms for directed graphs like finding the maximum spanning trees. There is a scoring function which evaluates how correctly a particular tree analyzes a sentence~\citep{kubler2009dependency}. }
+    
+    \item{Transition-based - }{In a transition-based approach are based on the notion of transition system which is a finite state automaton. An FSA consists of states, transitions, mapping states and input symbols and transitions from initial to final states. The state transition happens on an input to a state. In case of transition based parsing, each of the states represent steps for deriving a dependency tree. These approaches make use of a stack-based technique for parsing. Transition based systems are mostly stack-based. Initially, the stack contains the artificial root and the buffer is empty. There are three kinds of transitions - shift, left and right. This is a bottom-up approach, i.e., for an arc to be constructed between two nodes, it is imperative that the dependent node has already a dependency tree constructed. This approach is also known as arc-standard. There is another approach called arc-eager where the terminal configuration is guided by the state of the buffer. If it is empty the arc-eager system terminates. In addition to the transitions in the arc-standard system, there is an additional transition called reduce. This is a top-down parsing approach as the arcs are added as and when found~ \citep{kubler2009dependency}.
     }
-    \item{Graph-based - }{Graph-based approaches rely on the algorithms for directed graphs like finding the maximum spanning trees. There is a scoring function which evaluates how correctly a particular tree analyzes a sentence~\cite{kubler2009dependency}. }
 \end{itemize}
  
 Various machine learning techniques have been implemented in different stages of parsing. In general, machine learning algorithms are used to compute scores in case of graph-based algorithms while for transition-based systems, it is used as an oracle. Supervised learning methods have proven useful while most recently, semi-supervised and unsupervised methods have shown promise. The goal is to reduce the time taken in parsing while not compromising the quality of the parse. 
-The parsing problems by using these approaches are discussed in further details in the subsequent sections. We have further sub-categorized problems by whether they work for projective or non-projective sentence structures. Usually, the problem with projective sentences are a subclass of that of the non-projective sentences. The pseudo-projective approaches are also listed under the non-projective approaches. Neural network approaches are categorized in a separate section for ease of readability.
-
-%\subsection{Discriminative Models}
-\subsection{Transition based approaches}
-
-Broadly, there are two main approaches to transition based parsing. 
-
-\begin{itemize}
-\item Greedy classifier based - The transition-based approach has a set of transitions between the states (or configuration). However, to categorize this as a parsing problem, we need to score these transitions and estimate the highest scoring transition by using a model. A classifier can be used as this model which maps configurations to the most optimal transition. The optimal transition can be determined in a greedy way, where the final optimal transition is determined by selecting the optimal transitions locally. A representation of the scoring is as below:
-\begin{equation*}
-Score(C, T) = \sum_{i = 1}^{N} f_i(C,T).w_i
-\end{equation*}
-where C = configuration, T = transition
-Many machine learning techniques are used to learn the weights such as SVMs, perceptrons, etc.(more recently, neural networks)
-
-\item Beam search and structure learning - The beam search and structure learning has a similar strategy, however, in this case, instead of a greedy search, beam search is applied. Thus instead of 1 optimal transition, $n$ number of possible optimal solutions are considered at each step where $n$ is the beam size. The second part is similar to greedy classifier method, except that it has been seen (as we will see later in this chapter) that structured learning approaches tend to have better results.
-\end{itemize}
-
-We discuss the existing methods for transition based learning from the point of view of projectivity. Since our objective is to highlight the machine learning approaches, we will look at it from the perspective of the machine learning techniques used.
-
-\subsubsection{Projective}
-
-Probabilistic approaches to parsing initially showed promising results in dependency parsing as compared to rule-based techniques. 
-%A simple bigram probabilities estimation technique was used to estimate the probability of dependencies between pair of words for the Wall Street Journal corpora~\cite{Collins:1996:NSP:981863.981888}. 
-%Decision trees~\cite{haruno1999using} and Maximum Entropy models~\cite{Charniak:2000:MP:974305.974323} were also implemented for dependency structure analysis. However, these approaches did not address the feature selection or in other words, how selecting good features could be a key in improving the results in dependency structure analysis. So, 
-Previous work in syntactic parsing (constituency parsing, in most cases) did not address the feature selection or in other words, how selecting good features could be a key in improving the results in dependency structure analysis.
-So, Kudo and Matsumoto\cite{Kudo:2000:JDS:1117794.1117797} applied Support Vector Machines (SVMs) for analysis of dependency structure in Japanese. They assume that the dependency structure holds the following constraints.
-\begin{itemize}[leftmargin=*]
-\itemsep-0.5em
-    \item Each item depends on exactly one item appearing to the right.
-    \item The dependencies are projective.
-\end{itemize}
-Since, the problem of statistical dependency analysis deals with finding the best dependency structure($D_{best}$) given a sequence of chunks of a sentence ($B$) (chunks are specific to Japanese dependency structure and are defined as relation between phrasal units), it can be formulated as follows:
-\begin{equation*}
-    D_{best} = \arg\max_{D} P(D|B)
-\end{equation*}
-Considering the dependent probabilities are independent of each other, $P(D|B)$ can be written as:
-
-\begin{equation}
-P(D|B) = \prod_{i=1}^{m-1}P(Dep(i)=j|f_{ij}) 
-$ where, $ 
-f_{ij} = {f_1,...,f_n} \in R^n 
-\end{equation} \\
-$P(Dep(i)=j|f_{ij})$ denotes the probability that the chunk i depends on the chunk j given an n-dimensional linguistically-motivated feature set. 
-To find $D_{best}$, the authors have used the backward beam search technique for statistical dependency analysis of Japanese sentence by~\cite{Sekine:2000:BBS:992730.992755} which processes a sentence backwards.
-
-The feature set consists of static features such as, head words and their parts-of-speech, particles and inflection forms of the words appearing at the end of chunks, distance between two chunks, existence of punctuation marks. In order to handle long sentences, dynamic features are included which resolves syntactic ambiguity at the time of parsing. These are mainly ``form of functional words or inflection that modifies the right chunk". The authors report a better accuracy compared to the previous work on the same corpus.
-
-A similar discriminative model for dependency analysis on Wall Street Journal section (02-21 for training and 23 for test) of the Penn Treebank~\cite{Marcus:1994:PTA:1075812.1075835} using SVMs by Yamada and Matsumoto\cite{yamada2003statistical}.  They apply a deterministic bottom-up parsing algorithm which comprises of three actions - \textit{Shift}, \textit{Left} and \textit{Right}. The parsing algorithm undergoes a two-step procedure to parse an input sentence considering words from left to right. The first procedure involves assessing the appropriate action (\textit{Shift} or  \textit{Left} or \textit{Right}) from the contextual information provided by the surrounding words. Then, the parser builds the dependency tree by executing these actions determined in the previous step. During the training phase, each sentence is parsed using this algorithm. The contextual features with the right parsing action serves as an example for the SVM. Thus the estimation phase is a multiclass classification problem comprising of three binary classifiers for each action in a pairwise fashion:
-\begin{itemize}[nolistsep,leftmargin=*]
-%\itemsep-.75em
-\item Left vs. Right
-\item Left vs. Shift
-\item Right vs. Shift
-\end{itemize}
-The decision on the action that needs to be implemented at any stage is determined by the cumulative votes from each of these SVMs. 
-The features are as follows:
-\begin{itemize}[nolistsep,leftmargin=*]
-%\itemsep-.25em
-\item word
-\item Part of Speech (POS) tags
-\item child word modifying the parent node on the right hand side
-\item child word modifying the parent node on the left hand side
-\item POS tag of the child node modifying the parent node on the right hand side
-\item POS tag of the child node modifying the parent node on the left hand side
-\end{itemize}
-Each feature is defined as a triplet consisting of the position from target node, feature type and the feature value. The accuracy of this parser is not at par with the contemporary phrase structure parsers owing to the fact that the phrase structures are not utilized in this parser. Malt parser (discussed in the non-projective section) addressed the problems faced by this parser viz., requirement to iterate for long sentences.
-
-Cheng~\etal~\cite{cheng2005chinese} applied a similar approach using SVMs to determine if a dependency relation exists for any two pair of words based on  Chinese Treebank. The parsing method is based on Nivre and Scholz's~\cite{Nivre:2004:DDP:1220355.1220365} bottom-up deterministic algorithm which parses a sentence in linear time. The basic difference is in the machine learning algorithm used for these two papers. While Nivre and Scholz used memory based learners ($5$-nearest neighbors (IB 1) from TiMBL~\cite{daelemans2004timbl}). This algorithm is also stack-based, where the analyzer states are represented as a triple $\langle S, I, A \rangle$ where $S$ contains the words which are being considered, $I$ contains the words which are to be processed and $A$ is a list of dependency relation. 
-It is also important to point out the differences between Yamada and Matsumoto's approach to that of Nivre's since both are based on English text and use a deterministic parsing algorithm. The primary difference would be the choice of classifiers, SVMs vs. MBL. Yamada and Matsumoto's parser requires multiple passes but Nivre's take one pass which makes Yamada's algorithm's worst case time complexity to be quadratic as compared Nivre's algorithm's linear time.
-The data-driven dependency parsing was further used for parsing Swedish~\cite{nivrej.2004}, Bulgarian~\cite{marinov2005data} and Turkish~\cite{eryiugit2008dependency} treebanks with improvement over baseline.
-
-At any stage, there are four possible operations for a given configuration - right, left, reduce \& shift. Right \& left operations add dependencies based on whether the top word in $I$ depends on the top word in $S$ or in the other direction respectively. For reduce, if the top element of $S$ has no dependents, it is removed. For shift, the analyzer checks whether there is any possible dependency relation between the top elements of $S$ and $I$. If it does not find one and the conditions for reduce are not met as well, then the top element of $I$ is pushed into $S$.
-
-Since the two methods (Cheng vs. Nivre) use different machine learners, the feature set is different. Nivre and Scholz considered the top word of the stack, the next input token, left and right dependent of the top element in the stack, left dependent of the next input token, the possible tokens from next configurations which are connected through a dependency arc. For the tokens in consideration, the lemma and part of speech tags are considered, while for the ``lookahead" tokens, they have only considered the part of speech tags. For Cheng's work, each node comprises of the word, POS tags and information of its children. They also take context features, such the preceding and succeeding nodes and its children into consideration. These are treated as local features. The global features are used for the long distance dependencies. If the local features arrive at a decision which is shift/reduce, the analyzer uses SVMs to determine the correct operation using global features. They have also proposed a two-step process for finding the root words using SVMs. They have reported an increase in accuracy by employing the global features and the root word finder. 
-
-This method was further extended to account for multiword units (MWUs) such as multiword names, function words by Nivre and Nilsson~\cite{nivre2004multiword}. Particularly, to examine whether multiword units help in improving the parser results and if so, at which point should this be implemented. They experimented on the lexicalized and non-lexicalized versions of the parser based on memory-based learning. They show a significant improvement over the baselines for the syntactic structures in addition to the MWUs.
-
-In order to analyze whether there is a ``better" machine learning algorithm for parsing, Hall~\etal~\cite{Hall:2006:DCD:1273073.1273114} presented a comparison between SVMs and memory based learning classifiers in deterministic dependency parsing for English, Chinese and Swedish using a variety of features. They show that the accuracy achieved by these classifier based models are almost at par with more complex parsing models. For their experiments, SVMs outperform the memory based learners but with a tradeoff in training times.
-
-\paragraph{Pseudo projective approaches}
-
-English sentences are generally projective, i.e., the edges of the dependency trees do not cross each other in a sentence. However, in the languages with a flexible word order like German, Czech and Dutch, the sentences tend to be non-projective with crossing dependencies. To solve, this problem, Nivre and Nilsson~\cite{nivre2005pseudo} devised a ``pseudo projective" method for parsing and reported an improvement over the state-of-the-art non-projective parsing results for Prague Dependency Treebank~\cite{bohmova2003prague,hajic1998building} by using a combination of data-driven deterministic dependency parsing (memory-based) with a graph transformation technique called lifting. Typically, a non projective dependency graph can be converted to a projective one by replacing the non-projective arc with a projective one. The authors have implemented a transformation involving a minimal number of lifts. Thus, at the first step, the dependency trees are projectivized by applying the minimal lift transformation technique. In the second step, they have implemented an inverse transformation based on the breadth-first search algorithm using three encoding schemes. As a part of the experiments, memory based dependency parsers are used and the projectivized trees are used for training. The output is transformed using the inverse transformation and compared to the gold standard test set.
-
-\subsubsection{Non-projective}
-
-While the parsing techniques for English have proven to be efficient enough, parsing non-projective tree structures can prove to be challenging. A lot of techniques, as we will see later for the generative models as well, work for non-projective sentences with some modification on the projective counterparts. 
-          
-This problem has been addressed by Nivre~\etal\cite{nivre2006maltparser,nivre2007maltparser}, who introduced MaltParser, which they describe as ``data-driven parser-generator for dependency parsing". The parser requires a treebank and not a grammar unlike contemporary parser-generators. The parsing comprises of - building dependency graphs by deterministic parsing algorithms as shown by Yamada and Matsumoto and Nivre, estimating the next action of the parser by building a history-based feature model and finally mapping the history to parser action using discriminative machine learning algorithms (as demonstrated in Yamada and Matsumoto's and Nivre's work) such as memory based learning, SVMs. MaltParser specifies a fized set of data structures and typically any parsing algorithm which follows this architecture would work in the framework. It supports Nivre's~\cite{nivre2003efficient}[An efficient algorithm for projective dependency parsing] and Covington's~\cite{covington2001fundamental} algorithms which uses three approaches - Brute-force search, Exhaustive left-to-right search and enforcing uniqueness. The feature models consists of word, lemma, part of speech tags, dependency type described in terms of the provided data structures. The evaluations provided by Nivre~\etal for MaltParser is for Swedish, English, Czech, Danish and Bulgarian based on memory based learning.
-
-It is clear that, parsing accuracy and time is an issue for non-projective parsing, which caused largely due to the way non-projective dependencies are handled. Also, it has been argued that, even for the free word order languages, the dependency structures tend to be either projective or ``very nearly projective". This leads to the discussion of finding the appropriate ``degrees of non-projectivity"~\cite{nivre2006constraints}, which can be stated as finding a balance such that a small amount of non-projectivity might improve the parsing accuracy and time over strict projectivity and it is also more efficient than considering non-projectivity in abundance. Nivre~\cite{nivre2007incremental} investigated this appropriate degree of non-projectivity by using Covington's parsing algorithm with history based SVM classifier to  predict the next parser action. The results indicate that the languages exhibiting extensive non-projectiveness, the parser accuracy can be boosted if the non-projective dependencies are derived. However, on the other hand, parsing times can be improved by curbing the non-projectivity with a small decrease in parsing accuracy. 
-
-Although SVMs work well in case of parsing, it can be expensive in terms of training and memory requirements. A better workaround for this can be, to use multi layer perceptrons as the classifier~\cite{attardi2009accurate} as perceptrons are faster and require less memory.  
-
-
-
-%\cite{bohnet2010very}
-
-%A Transition-Based System for Joint Part-of-Speech Tagging and Labeled Non-Projective Dependency Parsing
-
-%Getting the Most out of Transition-based Dependency Parsing
-
-%Transition-based Dependency Parsing with Rich Non-local Features
-
-
-%\subsection{Generative Models}
+The parsing problems by using these approaches are discussed in further details in the subsequent sections. I have further sub-categorized problems by whether they work for projective or non-projective sentence structures. Usually, the problem with projective sentences are a subclass of that of the non-projective sentences. The pseudo-projective approaches are also listed under the non-projective approaches. Neural network approaches are categorized in a separate section for ease of readability.
 
 \subsection{Graph based approaches}
 
-The most basic model for graph based parsing is the arc-factored model. An arc is an edge in the dependency tree. This is also commonly referred to as the first order model since the score is computed based on the scores of each arc. This is an exact inference. However, research has indicated that better parsing accuracy can be achi  eved when we considered bigger subgraphs i.e., set of 2 or 3 arcs in dependency tree. These models are referred to as second and third order models respectively but it increases the parsing complexity i.e., for learning and parsing. These are approximate inferences. In the subsequent sections, we have divided graph-based models in terms of projectivity and non-projectivity. 
+The most basic model for graph based parsing is the arc-factored model. An arc is an edge in the dependency tree. This is also commonly referred to as the first order model since the score is computed based on the scores of each arc. This is an exact inference. However, research has indicated that better parsing accuracy can be achieved when we considered bigger subgraphs i.e., set of 2 or 3 arcs in dependency tree. These models are referred to as second and third order models respectively but it increases the parsing complexity i.e., for learning and parsing. These are approximate inferences. In the subsequent sections, we have divided graph-based models in terms of projectivity and non-projectivity. 
 
 
+\subsubsection{Projective}
 
 \paragraph*{Eisner's Algorithm}
 Quite a lot of work has been done using generative models to improve the results of dependency parsing. To address the ``lexical blindspot" of context-free grammars (CFGs), Eisner~\cite{eisner1996three} proposed three different probabilistic approaches to describe the basic structure of a sentence and apply it to a dependency framework for improving the resulting parses. This is a constituent CKY based algorithm for dependency parsing which uses words as node labels. This has been used for parsing projective dependencies The probabilistic models are as follows:
 
 \begin{figure*}[!htb]
     \centering
-    \includegraphics[scale = 0.45]{Eisner.png}
+    \includegraphics[scale = 0.45]{figures/Eisner.png}
     \centering
     \caption{Three probabilistic models in Eisner's work}
     \label{fig:eisnerexpressions}
@@ -380,13 +300,13 @@ This is a generative model as opposed to the two previously described comprehens
 
 A probabilistic algorithm which is similar to CKY is proposed as the parsing algorithm. CKY considers substrings of increasing length for parsing and thus each such substring is represented as lexical trees. But, in this case, instead of considering substring as trees, the parser considers these as spans. These approaches when tested on the WSJ corpus indicate that the recursive generation model performs better as compared to the other two. The parsing algorithm has a $O(n^3)$ complexity. 
 
-Training these models is particularly easy as it constitutes mainly of estimating probabilities by counting the events related to parsing in the training set. However, this advantage is sometime nullified due to the poor decisions in the independence assumptions. This is where the discriminative models tend to perform better. However, these especially Maximum Entropy Markov Models based parsers~\cite{ratnaparkhi1999learning} tend to run into the label bias problem (\atrcomments{?}) because it does not take the parsing decisions based on an observation which might be seen later in the sequence. Parsing the training corpus repeatedly can solve this problem to some extent. However, it is really expensive - $O(n^5)$ as opposed to $O(n^3)$ for generative models. Hence, to strike a balance and utilize reduced parsing complexity of generative models like Eisner's, McDonald~\etal~\cite{McDonald:2005:OLT:1219840.1219852} described a method of training dependency parsers for English and Czech using margin-sensitive online training algorithms~\cite{crammer2003ultraconservative,shalev2003online}. The authors mention that this method can be translated for non-projective cases (where it may appear in Czech, for instance) as well. Since the reported results are for projective cases only, we have listed it so.
+Training these models is particularly easy as it constitutes mainly of estimating probabilities by counting the events related to parsing in the training set. However, this advantage is sometime nullified due to the poor decisions in the independence assumptions. This is where the discriminative models tend to perform better. However, these especially Maximum Entropy Markov Models based parsers~\citep{ratnaparkhi1999learning} tend to run into the label bias problem because it does not take the parsing decisions based on an observation which might be seen later in the sequence. Parsing the training corpus repeatedly can solve this problem to some extent. However, it is really expensive - $O(n^5)$ as opposed to $O(n^3)$ for generative models. Hence, to strike a balance and utilize reduced parsing complexity of generative models like Eisner's, McDonald~\etal~\citep{McDonald:2005:OLT:1219840.1219852} described a method of training dependency parsers for English and Czech using margin-sensitive online training algorithms~\citep{crammer2003ultraconservative,shalev2003online}. The authors mention that this method can be translated for non-projective cases (where it may appear in Czech, for instance) as well. Since the reported results are for projective cases only, we have listed it so.
 
 
-
+\subsubsection{Non Projective}
 \paragraph*{Chu-Liu-Edmonds Algorithm}
 
-Chu-Liu-Edmonds algorithm\cite{chu1965shortest,edmonds1967optimum} often serves as a basis for non-projective parsing approach which determines the maximum spanning tree (MST) of a graph in a greedy and recursive way. We will informally explain the intuition behind the algorithm as follows:
+Chu-Liu-Edmonds algorithm\citep{chu1965shortest,edmonds1967optimum} often serves as a basis for non-projective parsing approach which determines the maximum spanning tree (MST) of a graph in a greedy and recursive way. We will informally explain the intuition behind the algorithm as follows:
 \begin{itemize}[label={--}]
 \item{Motivation: } All the nodes in a graph need to be in arborescence. I.e., there should be exactly one directed path between two nodes in the graph.
 \item An incoming edge is selected for a node in a greedy way.
@@ -401,23 +321,133 @@ Chu-Liu-Edmonds algorithm\cite{chu1965shortest,edmonds1967optimum} often serves 
 \item  The incoming and outgoing edge weights for this new ``contracted" vertex are recalculated.
 \item This process is repeated recursively until every non-root vertex contains exactly one incoming node and there are no cycles.  
 \end{itemize}
-\item The MST formed on this contracted graph can be shown to be equivalent to MST for the original graph. \cite{georgiadis2003arborescence}
+\item The MST formed on this contracted graph can be shown to be equivalent to MST for the original graph~\citep{georgiadis2003arborescence}.
 \item Thus the algorithm is recursively implemented on the new graph to find the MST.
 \end{itemize}
 
 
-\paragraph{Non-projective approaches}
-While the graph transformation techniques yielded good results with a cubic complexity, the parsing complexity was reduced by McDonald~\etal~\cite{McDonald:2005:NDP:1220575.1220641} who proposed a dependency framework for both projective and non-projective dependency parsing by formalizing the problem as searching for maximum spanning tree (MST). They have used a similar approach as Hirakawa's~\cite{hirakawa2001semantic} spanning tree search for dependency parsing. However, the worst case performance is exponential in this case as branch and bound algorithm is used. They used Eisner's spanning trees approach for projective and Chu-Liu-Edmonds algorithm~\cite{chu1965shortest,edmonds1967optimum} for non-projective dependency trees. At first, an edge-based factorization is applied to the projective languages with Eisner's parsing algorithm and Chu-Liu-Edmonds maximum spanning tree algorithm for non-projective languages. The edge factorization for an edge is done by computing a dot-product between a high dimensional feature representation of the edge in consideration and a weight vector. The score of a dependency tree is then a sum of the scores of all edges in the tree. The weight is updated by using the online learning algorithm implemented in McDonald~\etal~\cite{McDonald:2005:OLT:1219840.1219852}. Their results show significant improvement in accuracy even with a small amount of non-projective sentences. They also reported improved parsing times - $O(n^2)$ as compared to $O(n^3)$ - in favor of the Chu-Liu-Edmonds algorithm as opposed to Eisner's. Their parser performs well even when compared to state-of-the-art\atrcomments{?} lexicalized phrase structure parsers such as 
-Collins~\etal~\cite{collins1999statistical} and Zeman~\cite{zeman2004parsing}, whose parsing complexity is $O(n^5)$. This framework was further account for higher-order feature representation and acyclic dependencies, i.e., multiple heads for each word~\cite{mcdonald2006online} by using approximate inferencing of the online learning algorithms. The defined approximation is to start with a reasonably good baseline structure and then continue making transformations until the structure converges. 
+%\paragraph*{Non-projective approaches}
+While the graph transformation techniques yielded good results with a cubic complexity, the parsing complexity was reduced by \cite{McDonald:2005:NDP:1220575.1220641} who proposed a dependency framework for both projective and non-projective dependency parsing by formalizing the problem as searching for maximum spanning tree (MST). They have used a similar approach as \cite{hirakawa2001semantic} spanning tree search for dependency parsing. However, the worst case performance is exponential in this case as branch and bound algorithm is used. They used Eisner's spanning trees approach for projective and Chu-Liu-Edmonds algorithm~\citep{chu1965shortest,edmonds1967optimum} for non-projective dependency trees. At first, an edge-based factorization is applied to the projective languages with Eisner's parsing algorithm and Chu-Liu-Edmonds maximum spanning tree algorithm for non-projective languages. The edge factorization for an edge is done by computing a dot-product between a high dimensional feature representation of the edge in consideration and a weight vector. The score of a dependency tree is then a sum of the scores of all edges in the tree. The weight is updated by using the online learning algorithm implemented by
+%McDonald~\etal
+~\cite{McDonald:2005:OLT:1219840.1219852}. Their results show significant improvement in accuracy even with a small amount of non-projective sentences. They also reported improved parsing times - $O(n^2)$ as compared to $O(n^3)$ - in favor of the Chu-Liu-Edmonds algorithm as opposed to Eisner's. Their parser performs well even when compared to state-of-the-art lexicalized phrase structure parsers such as~\cite{collins1999statistical} and \cite{zeman2004parsing}, whose parsing complexity is $O(n^5)$. This framework was further account for higher-order feature representation and acyclic dependencies, i.e., multiple heads for each word~\citep{mcdonald2006online} by using approximate inferencing of the online learning algorithms. The defined approximation is to start with a reasonably good baseline structure and then continue making transformations until the structure converges. 
 
-In order to devise more effective ways of solving multilingual parsing problems, McDonald~\etal~\cite{McDonald:2006:MDA:1596276.1596317} proposed a two-stage multilingual parser and evaluated it on the 13 language treebanks provided in different CoNLL shared tasks~\cite{Buchholz:2006:CST:1596276.1596305}. The first stage in this model is to create an unlabeled parse for an input sentence. They extend the existing models by McDonald \& Pereira~\cite{mcdonald2006online}, adding morphological features (where available) for each token. The morphological features (includes features for parent and its dependent and also various conjunctions of features from each of sets. The second stage is label classification which takes the output parse from stage 1 and assigns each edge with a label with the highest score. A first order Markov factorization has been used. Each factor is defined as the score of labeling adjacent edges. As defined in the earlier work by McDonald~\etal, the score function is defined as the dot product between the high dimensional feature representation and a weight vector. The most likely sequence of labels is then  ascertained by applying Viterbi's algorithm.
+In order to devise more effective ways of solving multilingual parsing problems,~\cite{McDonald:2006:MDA:1596276.1596317} proposed a two-stage multilingual parser and evaluated it on the 13 language treebanks provided in different CoNLL shared tasks~\citep{Buchholz:2006:CST:1596276.1596305}. The first stage in this model is to create an unlabeled parse for an input sentence. They extend the existing models by~\cite{mcdonald2006online}, adding morphological features (where available) for each token. The morphological features (includes features for parent and its dependent and also various conjunctions of features from each of sets. The second stage is label classification which takes the output parse from stage 1 and assigns each edge with a label with the highest score. A first order Markov factorization has been used. Each factor is defined as the score of labeling adjacent edges. As defined in the earlier work by McDonald~\etal, the score function is defined as the dot product between the high dimensional feature representation and a weight vector. The most likely sequence of labels is then  ascertained by applying Viterbi's algorithm.
 
 
 %paper= Online Large-Margin Training of Dependency Parsers
 
-\paragraph{Higher order models}
+\paragraph*{Higher order models}
 
-As explained before, first order model is one in which the dependency tree os split into head and modifier dependencies. Second order models look into the adjacent dependencies in addition to these primary dependencies. McDonald \& Pereira~\cite{mcdonald2006online} experimented with second order graph models. Carreras~\cite{carreras2007experiments} extended this to experiment with other types of second-order relations. In particular, they look into PP-attachment which requires looking into grand parent relations. The training is done with averaged perceptron on Eisner's(1996) algorithm. Although it reported one of the best reported labeled attachment scores for some languages, this model suffers in terms of time and memory utilization. Bohnet~\cite{bohnet2010very} used this parser as a basis for their work on parallelizing the feature extraction and parsing algorithm by using passive-aggressive perceptron algorithm~\cite{crammer2006online} as Hash Kernel. The concepts from this model can be extended to the transition based parsers as well. Bohnet reported a 3.5 times increase in speed over the baseline MST parser using a single core CPU and it also requires a lot less memory than the contemporary parsers by using Hash Kernel. The speed increases further by using parallel algorithms and it can be further reduced at the cost of accuracy.
+As explained before, first order model is one in which the dependency tree os split into head and modifier dependencies. Second order models look into the adjacent dependencies in addition to these primary dependencies. \cite{mcdonald2006online} experimented with second order graph models. \cite{carreras2007experiments} extended this to experiment with other types of second-order relations. In particular, they look into PP-attachment which requires looking into grand parent relations. The training is done with averaged perceptron on Eisner's(1996) algorithm. Although it reported one of the best reported labeled attachment scores for some languages, this model suffers in terms of time and memory utilization. \cite{bohnet2010very} used this parser as a basis for their work on parallelizing the feature extraction and parsing algorithm by using passive-aggressive perceptron algorithm~\citep{crammer2006online} as Hash Kernel. The concepts from this model can be extended to the transition based parsers as well. Bohnet reported a 3.5 times increase in speed over the baseline MST parser using a single core CPU and it also requires a lot less memory than the contemporary parsers by using Hash Kernel. The speed increases further by using parallel algorithms and it can be further reduced at the cost of accuracy.
+
+
+%\subsection{Discriminative Models}
+\subsection{Transition based approaches}
+
+Broadly, there are two main approaches to transition based parsing. 
+
+\begin{itemize}
+\item Greedy classifier based - The transition-based approach has a set of transitions between the states (or configuration). However, to categorize this as a parsing problem, we need to score these transitions and estimate the highest scoring transition by using a model. A classifier can be used as this model which maps configurations to the most optimal transition. The optimal transition can be determined in a greedy way, where the final optimal transition is determined by selecting the optimal transitions locally. A representation of the scoring is as below:
+\begin{equation*}
+Score(C, T) = \sum_{i = 1}^{N} f_i(C,T).w_i
+\end{equation*}
+where C = configuration, T = transition
+Many machine learning techniques are used to learn the weights such as SVMs, perceptrons, etc.(more recently, neural networks)
+
+\item Beam search and structure learning - The beam search and structure learning has a similar strategy, however, in this case, instead of a greedy search, beam search is applied. Thus instead of 1 optimal transition, $n$ number of possible optimal solutions are considered at each step where $n$ is the beam size. The second part is similar to greedy classifier method, except that it has been seen (as we will see later in this chapter) that structured learning approaches tend to have better results.
+\end{itemize}
+
+I discuss the existing methods for transition based learning from the point of view of projectivity. %Since our objective is to highlight the machine learning approaches, we will look at it from the perspective of the machine learning techniques used.
+
+\subsubsection{Projective}
+
+Probabilistic approaches to parsing initially showed promising results in dependency parsing as compared to rule-based techniques. 
+%A simple bigram probabilities estimation technique was used to estimate the probability of dependencies between pair of words for the Wall Street Journal corpora~\cite{Collins:1996:NSP:981863.981888}. 
+%Decision trees~\cite{haruno1999using} and Maximum Entropy models~\cite{Charniak:2000:MP:974305.974323} were also implemented for dependency structure analysis. However, these approaches did not address the feature selection or in other words, how selecting good features could be a key in improving the results in dependency structure analysis. So, 
+Previous work in syntactic parsing (constituency parsing, in most cases) did not address the feature selection or in other words, how selecting good features could be a key in improving the results in dependency structure analysis.
+So, \cite{Kudo:2000:JDS:1117794.1117797} applied Support Vector Machines (SVMs) for analysis of dependency structure in Japanese. They assume that the dependency structure holds the following constraints.
+\begin{itemize}
+%\itemsep-0.5em
+    \item Each item depends on exactly one item appearing to the right.
+    \item The dependencies are projective.
+\end{itemize}
+Since, the problem of statistical dependency analysis deals with finding the best dependency structure($D_{best}$) given a sequence of chunks of a sentence ($B$) (chunks are specific to Japanese dependency structure and are defined as relation between phrasal units), it can be formulated as follows:
+\begin{equation*}
+    D_{best} = \arg\max_{D} P(D|B)
+\end{equation*}
+Considering the dependent probabilities are independent of each other, $P(D|B)$ can be written as:
+
+\begin{equation}
+P(D|B) = \prod_{i=1}^{m-1}P(Dep(i)=j|f_{ij}) 
+\\
+\text{ where, } 
+\\
+f_{ij} = {f_1,...,f_n} \in R^n 
+\end{equation} \\
+$P(Dep(i)=j|f_{ij})$ denotes the probability that the chunk i depends on the chunk j given an n-dimensional linguistically-motivated feature set. 
+To find $D_{best}$, the authors have used the backward beam search technique for statistical dependency analysis of Japanese sentence by~\cite{Sekine:2000:BBS:992730.992755} which processes a sentence backwards.
+
+The feature set consists of static features such as, head words and their parts-of-speech, particles and inflection forms of the words appearing at the end of chunks, distance between two chunks, existence of punctuation marks. In order to handle long sentences, dynamic features are included which resolves syntactic ambiguity at the time of parsing. These are mainly ``form of functional words or inflection that modifies the right chunk". The authors report a better accuracy compared to the previous work on the same corpus.
+
+A similar discriminative model for dependency analysis on Wall Street Journal section (02-21 for training and 23 for test) of the Penn Treebank~\citep{Marcus:1994:PTA:1075812.1075835} using SVMs \cite{yamada2003statistical}.  They apply a deterministic bottom-up parsing algorithm which comprises of three actions - \textit{Shift}, \textit{Left} and \textit{Right}. The parsing algorithm undergoes a two-step procedure to parse an input sentence considering words from left to right. The first procedure involves assessing the appropriate action (\textit{Shift} or  \textit{Left} or \textit{Right}) from the contextual information provided by the surrounding words. Then, the parser builds the dependency tree by executing these actions determined in the previous step. During the training phase, each sentence is parsed using this algorithm. The contextual features with the right parsing action serves as an example for the SVM. Thus the estimation phase is a multiclass classification problem comprising of three binary classifiers for each action in a pairwise fashion:
+\begin{itemize}
+%\itemsep-.75em
+\item Left vs. Right
+\item Left vs. Shift
+\item Right vs. Shift
+\end{itemize}
+The decision on the action that needs to be implemented at any stage is determined by the cumulative votes from each of these SVMs. 
+The features are as follows:
+\begin{itemize}
+%\itemsep-.25em
+\item word
+\item Part of Speech (POS) tags
+\item child word modifying the parent node on the right hand side
+\item child word modifying the parent node on the left hand side
+\item POS tag of the child node modifying the parent node on the right hand side
+\item POS tag of the child node modifying the parent node on the left hand side
+\end{itemize}
+Each feature is defined as a triplet consisting of the position from target node, feature type and the feature value. The accuracy of this parser is not at par with the contemporary phrase structure parsers owing to the fact that the phrase structures are not utilized in this parser. Malt parser (discussed in the non-projective section) addressed the problems faced by this parser viz., requirement to iterate for long sentences.
+
+\cite{cheng2005chinese} applied a similar approach using SVMs to determine if a dependency relation exists for any two pair of words based on  Chinese Treebank. The parsing method is based on~\cite{Nivre:2004:DDP:1220355.1220365} bottom-up deterministic algorithm which parses a sentence in linear time. The basic difference is in the machine learning algorithm used for these two papers. While Nivre and Scholz used memory based learners ($5$-nearest neighbors (IB 1) from TiMBL~\citep{daelemans2004timbl}). This algorithm is also stack-based, where the analyzer states are represented as a triple $\langle S, I, A \rangle$ where $S$ contains the words which are being considered, $I$ contains the words which are to be processed and $A$ is a list of dependency relation. 
+It is also important to point out the differences between Yamada and Matsumoto's approach to that of Nivre's since both are based on English text and use a deterministic parsing algorithm. The primary difference would be the choice of classifiers, SVMs vs. MBL. Yamada and Matsumoto's parser requires multiple passes but Nivre's take one pass which makes Yamada's algorithm's worst case time complexity to be quadratic as compared Nivre's algorithm's linear time.
+The data-driven dependency parsing was further used for parsing Swedish~\citep{nivrej.2004}, Bulgarian~\citep{marinov2005data} and Turkish~\citep{eryiugit2008dependency} treebanks with improvement over baseline.
+
+At any stage, there are four possible operations for a given configuration - right, left, reduce \& shift. Right \& left operations add dependencies based on whether the top word in $I$ depends on the top word in $S$ or in the other direction respectively. For reduce, if the top element of $S$ has no dependents, it is removed. For shift, the analyzer checks whether there is any possible dependency relation between the top elements of $S$ and $I$. If it does not find one and the conditions for reduce are not met as well, then the top element of $I$ is pushed into $S$.
+
+Since the two methods (Cheng vs. Nivre) use different machine learners, the feature set is different. Nivre and Scholz considered the top word of the stack, the next input token, left and right dependent of the top element in the stack, left dependent of the next input token, the possible tokens from next configurations which are connected through a dependency arc. For the tokens in consideration, the lemma and part of speech tags are considered, while for the ``lookahead" tokens, they have only considered the part of speech tags. For Cheng's work, each node comprises of the word, POS tags and information of its children. They also take context features, such the preceding and succeeding nodes and its children into consideration. These are treated as local features. The global features are used for the long distance dependencies. If the local features arrive at a decision which is shift/reduce, the analyzer uses SVMs to determine the correct operation using global features. They have also proposed a two-step process for finding the root words using SVMs. They have reported an increase in accuracy by employing the global features and the root word finder. 
+
+This method was further extended to account for multiword units (MWUs) such as multiword names, function words by~\cite{nivre2004multiword}. Particularly, to examine whether multiword units help in improving the parser results and if so, at which point should this be implemented. They experimented on the lexicalized and non-lexicalized versions of the parser based on memory-based learning. They show a significant improvement over the baselines for the syntactic structures in addition to the MWUs.
+
+In order to analyze whether there is a ``better" machine learning algorithm for parsing, \cite{Hall:2006:DCD:1273073.1273114} presented a comparison between SVMs and memory based learning classifiers in deterministic dependency parsing for English, Chinese and Swedish using a variety of features. They show that the accuracy achieved by these classifier based models are almost at par with more complex parsing models. For their experiments, SVMs outperform the memory based learners but with a tradeoff in training times.
+
+\subsubsection{Pseudo projective approaches}
+
+English sentences are generally projective, i.e., the edges of the dependency trees do not cross each other in a sentence. However, in the languages with a flexible word order like German, Czech and Dutch, the sentences tend to be non-projective with crossing dependencies. To solve, this problem, \cite{nivre2005pseudo} devised a ``pseudo projective" method for parsing and reported an improvement over the state-of-the-art non-projective parsing results for Prague Dependency Treebank~\citep{bohmova2003prague,hajic1998building} by using a combination of data-driven deterministic dependency parsing (memory-based) with a graph transformation technique called lifting. Typically, a non projective dependency graph can be converted to a projective one by replacing the non-projective arc with a projective one. The authors have implemented a transformation involving a minimal number of lifts. Thus, at the first step, the dependency trees are projectivized by applying the minimal lift transformation technique. In the second step, they have implemented an inverse transformation based on the breadth-first search algorithm using three encoding schemes. As a part of the experiments, memory based dependency parsers are used and the projectivized trees are used for training. The output is transformed using the inverse transformation and compared to the gold standard test set.
+
+\subsubsection{Non-projective}
+
+While the parsing techniques for English have proven to be efficient enough, parsing non-projective tree structures can prove to be challenging. A lot of techniques, as we will see later for the generative models as well, work for non-projective sentences with some modification on the projective counterparts. 
+          
+This problem has been addressed by \cite{nivre2006maltparser,nivre2007maltparser}, who introduced MaltParser, which they describe as ``data-driven parser-generator for dependency parsing". The parser requires a treebank and not a grammar unlike contemporary parser-generators. The parsing comprises of - building dependency graphs by deterministic parsing algorithms as shown by Yamada and Matsumoto and Nivre, estimating the next action of the parser by building a history-based feature model and finally mapping the history to parser action using discriminative machine learning algorithms (as demonstrated in Yamada and Matsumoto's and Nivre's work) such as memory based learning, SVMs. MaltParser specifies a fized set of data structures and typically any parsing algorithm which follows this architecture would work in the framework. It supports \cite{nivre2003efficient} and \cite{covington2001fundamental} algorithms which uses three approaches - Brute-force search, Exhaustive left-to-right search and enforcing uniqueness. The feature models consists of word, lemma, part of speech tags, dependency type described in terms of the provided data structures. The evaluations provided by Nivre~\etal~ for MaltParser is for Swedish, English, Czech, Danish and Bulgarian based on memory based learning.
+
+It is clear that, parsing accuracy and time is an issue for non-projective parsing, which caused largely due to the way non-projective dependencies are handled. Also, it has been argued that, even for the free word order languages, the dependency structures tend to be either projective or ``very nearly projective". This leads to the discussion of finding the appropriate ``degrees of non-projectivity"~\citep{nivre2006constraints}, which can be stated as finding a balance such that a small amount of non-projectivity might improve the parsing accuracy and time over strict projectivity and it is also more efficient than considering non-projectivity in abundance. \cite{nivre2007incremental} investigated this appropriate degree of non-projectivity by using Covington's parsing algorithm with history based SVM classifier to  predict the next parser action. The results indicate that the languages exhibiting extensive non-projectiveness, the parser accuracy can be boosted if the non-projective dependencies are derived. However, on the other hand, parsing times can be improved by curbing the non-projectivity with a small decrease in parsing accuracy. 
+
+Although SVMs work well in case of parsing, it can be expensive in terms of training and memory requirements. A better workaround for this can be, to use multi layer perceptrons as the classifier~\citep{attardi2009accurate} as perceptrons are faster and require less memory.  
+
+
+
+%\cite{bohnet2010very}
+
+%A Transition-Based System for Joint Part-of-Speech Tagging and Labeled Non-Projective Dependency Parsing
+
+%Getting the Most out of Transition-based Dependency Parsing
+
+%Transition-based Dependency Parsing with Rich Non-local Features
+
+
+%\subsection{Generative Models}
+
 
 
 \subsection{Combining transition-based and graph-based models}
@@ -425,11 +455,11 @@ As explained before, first order model is one in which the dependency tree os sp
 
 With the diverse amount of work on dependency parsers there has been work based on combining components from generative models with that of the discriminative approaches.
 
-Graph-based and transition-based parsers have reported good accuracies for different criteria. Thus, a combination of both promises better results than individual. This premise was explored by Zhang \& Clark~\cite{zhang2008tale} for projective dependency parsing. They considered Malt and MST for transition and graph-based respectively. Their basis was to use of beam search framework. They have used perceptron for training and beam search for decoding. They tested the combined parser on English and Chinese with comparable results with that of the best parsers for both models.
+Graph-based and transition-based parsers have reported good accuracies for different criteria. Thus, a combination of both promises better results than individual. This premise was explored by \cite{zhang2008tale} for projective dependency parsing. They considered Malt and MST for transition and graph-based respectively. Their basis was to use of beam search framework. They have used perceptron for training and beam search for decoding. They tested the combined parser on English and Chinese with comparable results with that of the best parsers for both models.
 
 
 
-CoNLL-X Shared Task on Multilingual Dependency Parsing~\cite{Buchholz:2006:CST:1596276.1596305} constituted multilingual parsing using a single dependency parser which can learn from treebank data. Nivre~\etal~\cite{Nivre:2006:LPD:1596276.1596318} used MaltParser to solve this problem for Swedish and Turkish. For mapping parser actions to history, they used SVMs and used graph transformations described by Nivre and Nilsson~\cite{nivre2005pseudo} to restore the non-projective structures.
+CoNLL-X Shared Task on Multilingual Dependency Parsing~\citep{Buchholz:2006:CST:1596276.1596305} constituted multilingual parsing using a single dependency parser which can learn from treebank data. \cite{Nivre:2006:LPD:1596276.1596318} used MaltParser to solve this problem for Swedish and Turkish. For mapping parser actions to history, they used SVMs and used graph transformations described by \cite{nivre2005pseudo} to restore the non-projective structures.
 
 \subsection{Unsupervised and semi-supervised approaches}
 
@@ -441,33 +471,32 @@ CoNLL-X Shared Task on Multilingual Dependency Parsing~\cite{Buchholz:2006:CST:1
 
 %Simple Semi-supervised Dependency Parsing Terry Koo, Xavier Carreras, and Michael Collins
 
-Some unsupervised and semi-supervised technieuqes have also been suggested to improve parser accuracy and addressing the concerns about portability of the system to other parsing frameworks. Blunsom \& Cohn~\cite{blunsom2010unsupervised} reported higher attachment scores by focusing on dependency grammar induction using tree substitution grammar because of its ability to learn large chunks of dependency tree. They devised a hierarchical non-parametric prior due to its bias towards simple productions. Spitkovsky~\etal~
-~\cite{spitkovsky2010viterbi}, on the other hand, argued that Viterbi actually is better suited for the problem of grammar induction. They tested their approach on Brown corpus. However, there is no direct comparison with Blunsom's approach.
+Some unsupervised and semi-supervised technieuqes have also been suggested to improve parser accuracy and addressing the concerns about portability of the system to other parsing frameworks. \cite{blunsom2010unsupervised} reported higher attachment scores by focusing on dependency grammar induction using tree substitution grammar because of its ability to learn large chunks of dependency tree. They devised a hierarchical non-parametric prior due to its bias towards simple productions. \cite{spitkovsky2010viterbi}, on the other hand, argued that Viterbi actually is better suited for the problem of grammar induction. They tested their approach on Brown corpus. However, there is no direct comparison with Blunsom's approach.
 
 \subsection{Neural Network based approaches}
 
-Although transition-based dependency parsers work reasonably well, but these parser tend to suffer due to poor estimation of feature weights, the incompleteness of manual feature templates and the time complexity for extraction of these features. The problem with sparse indicator features can be mitigated by using dense word embeddings as indicated in some of the recent works, such as for POS tagging~\cite{collobert2011natural}. Chen and Manning~\cite{chen2014fast} use a neural network based classifier for making the parsing decisions in a transition based dependency parser~\cite{Nivre:2004:DDP:1220355.1220365}. The architecture of the neural network based parser is given shown in figure~\ref{fig:NNchenmanning}. It contains exactly one hidden layer with a cubic  activation function ($g(x) = x^3$).
+Although transition-based dependency parsers work reasonably well, but these parser tend to suffer due to poor estimation of feature weights, the incompleteness of manual feature templates and the time complexity for extraction of these features. The problem with sparse indicator features can be mitigated by using dense word embeddings as indicated in some of the recent works, such as for POS tagging~\citep{collobert2011natural}. \cite{chen2014fast} use a neural network based classifier for making the parsing decisions in a transition based dependency parser~\citep{Nivre:2004:DDP:1220355.1220365}. The architecture of the neural network based parser is given shown in figure~\ref{fig:NNchenmanning}. It contains exactly one hidden layer with a cubic  activation function ($g(x) = x^3$).
 
-\begin{figure*}[!htb]
+\begin{figure*}[t]
     \centering
-    \includegraphics[scale = 0.5]{NNchenmanning.png}
+    \includegraphics[scale = 0.5]{figures/NNchenmanning.png}
     \centering
-    \caption{Neural Network architecture}
+    \caption{Neural Network architecture~\citep{chen2014fast}}
     \label{fig:NNchenmanning}
 \end{figure*}
 
 A greedy decoding is performed for parsing. At every step, word, its POS and label embeddings are extracted from the current configuration and like all the transition based parsers, the transition with the highest score is selected. This work is shown for the projective case only. For the selected sentences in PTB and CTB, this parser works better than MaltParser and MST in terms of parsing time and accuracy. 
-\cite{weiss2015structured} followed a similar approach but instead of one hidden layer, they added two which slightly improved the parser accuracy. Their work differs from Chen and Manning's by the use of semi-supervised structured learning which is implemented for the training. To learn the final layer of the model, they make use of structured perceptron. They also introduce unlabeled data by using word embeddings. This work was further extended for multilingual cases~\cite{alberti2015improved}. The difference is in the use of set or bag of features which are embedded into the same embedding space. 
+\cite{weiss2015structured} followed a similar approach but instead of one hidden layer, they added two which slightly improved the parser accuracy. Their work differs from Chen and Manning's by the use of semi-supervised structured learning which is implemented for the training. To learn the final layer of the model, they make use of structured perceptron. They also introduce unlabeled data by using word embeddings. This work was further extended for multilingual cases~\citep{alberti2015improved}. The difference is in the use of set or bag of features which are embedded into the same embedding space. 
 Chen and Manning's neural network architecture for parsing was further modified by 
 \cite{zhou2015neural} using beam search for the decoding step and contrastive learning to maximize the sentence-level log likeliood. They reported 1.8\% increase in accuracy over Chen and Manning's greedy neural parser.
 
-A graph-based neural network parser was proposed by Pei~\etal~\cite{pei2015effective} which made use of a $tanh-cubic$ activation function instead of Chen and Manning cubic activation function. The parser outperformed the baseline graph-based parsers. However, it is not clear if this parser outperforms the other neural network based parsers. Neural network parsers for multilingual settings are implemented by using convolutional neural networks by Zhang~\etal~\cite{zhang2016probabilistic} by using the basic architecture of Pei~\etal.
+A graph-based neural network parser was proposed by \cite{pei2015effective} which made use of a $tanh-cubic$ activation function instead of Chen and Manning cubic activation function. The parser outperformed the baseline graph-based parsers. However, it is not clear if this parser outperforms the other neural network based parsers. Neural network parsers for multilingual settings are implemented by using convolutional neural networks by \cite{zhang2016probabilistic} by using the basic architecture of \cite{pei2015effective}.
 
 \section{Transformation Based Error Driven Learning}~\label{sec:TBL}
 
-\begin{figure}[t!]
+\begin{figure}[t]
 \centering
-    \includegraphics[scale=0.8]{tbl-brill.png}
+    \includegraphics[scale=0.8]{figures/tbl-brill.png}
 \caption{Transformation Based Error Driven Parsing}~\citep{brill1992simple}
 \label{tbl:brill}
 \end{figure}
@@ -495,14 +524,17 @@ In one pass through the system, all possible rule hypotheses are created and ran
 
 \citet{brill1994rule} also use this technique for prepositional phrase attachment disambiguation. In this case, the TBL process uses a 4-tuple corpus from WSJ section of Penn Treebank. The tuples looks like: $$<V\ NP1\ P\ NP2> \rightarrow Attachment\ decision$$
 $V$ is the verb, $NP1$ is the noun phrase which is the head of the verb's object, $P$ is the preposition and $NP2$ corresponds to the head of the noun phrase controlled by the preposition. One the example rule templates in this case would be - \\
-Change the attachment location from $NP1$ to $V$ if $P$ is 
+Change the attachment location from $NP1$ to $V$ if $P$ is the word $w$.
 
+The learning process follows the same idea for TBL. The initial state annotator attaches the preposition phrases low i.e., to the noun phrase ($NP1$). Then, at each iteration, the best transformation is estimated by calculating the reduction in errors. The learning continues until the number of errors cannot be diminished anymore.
 
-\citet{brill1993automatic} also used this approach to parse text by learning a ``transformational'' grammar. The algorithm repeatedly compares the bracketed structure of the syntactic tree to the gold standard structure and learns the required transformations in the process~\todo{Expand}. 
+\citet{brill1993automatic} also used this approach to parse text by learning a ``transformational'' grammar. The algorithm repeatedly compares the bracketed structure of the syntactic tree to the gold standard structure and learns the required transformations in the process. In this case, the templates are of the following nature:
 
+``Add/Delete a left/right parenthesis to the left/right of POS tag $T$ or add/delete a left/right parenthesis between POS tags $T_1$ and $T_2$."
 
+Usually the initial state annotator assigns the punctuation high. Then following the basic iterative process of TBL, the rule transformations are applied iteratively until there is no more reduction in errors. 
 
-Transformation based error driven learning has also been used for information retrieval by \citet{woodley2005applying}\todo{Expand??}.
+Transformation based error driven learning has also been used for information retrieval by \citet{woodley2005applying}\todo{Do I need to write about this?}.
 
 
 
@@ -512,7 +544,6 @@ Transformation based error driven learning has also been used for information re
 
 \section{Evaluation}
 
-\atrcomments{Example?}~\todo{Look at hulk}
 
 In this section I discuss the different evaluation techniques that will be used in this thesis. I report on the standard metrics for POS tagging and dependency parsing. I discuss these metrics in detail below.
 %For POS tagging I mainly report accuracy, which estimates the accuracy in predicting POS tags. For dependency parsing
@@ -522,30 +553,114 @@ In this section I discuss the different evaluation techniques that will be used 
     \begin{itemize}
         \item Overall Accuracy: For POS tagging, I evaluate the results based on the accuracy of identifying POS tags correctly in the test set as shown in~\ref{eq:posacc}. I.e., I measure how many tags have been correctly identified in the test set.
         \begin{equation} \label{eq:posacc}
-            Accuracy = \frac{Number\ of\ correctly\ identified\ tokens}{total\ number\ of\ tokens}
+            %Accuracy = \frac{Number\ of\ correctly\ identified\ tokens}{total\ number\ of\ tokens}
+            Accuracy = \frac{w_c}{\sum_{i=1}^{N} w_i}
         \end{equation}
-        \item Accuracy for Known \& Unknown tokens: For POS tagging, unknown or out of vocabulary words (OOV) pose as a challenging problem. \texttt{tnt-diff} provides an utility to measure accuracy based on number of correct predictions for known vs. unknown words. I discuss the method employed by TnT to determine the POS tags for unknown words in section \atrcomments{TBD}. I.e., we can determine the accuracy on known and OOV words separately. Since performance on OOV words is an essential determining factor, I use this metric to further analyze the results from domain experts in greater detail. This is a bigger challenge in a domain adaptation situation since there are domain specific words for each domain, which tend to get misclassified in a heterogeneous dataset.
+        
+        where $w_c$ is the number of correctly identified tokens and the denominator represents the total number of tokens. 
+        \item Accuracy for Known \& Unknown tokens: For POS tagging, unknown or out of vocabulary words (OOV) pose as a challenging problem. \texttt{tnt-diff} provides an utility to measure accuracy based on number of correct predictions for known vs. unknown words. I discuss the method employed by TnT to determine the POS tags for unknown words in section~\ref{sec:postaggingmethod}. I.e., we can determine the accuracy on known and OOV words separately. Since performance on OOV words is an essential determining factor, I use this metric to further analyze the results from domain experts in greater detail. This is a bigger challenge in a domain adaptation situation since there are domain specific words for each domain, which tend to get misclassified in a heterogeneous dataset.
     \end{itemize}
+    
+Consider the following example from the Wall Street Journal:
+
+\begin{table}[!htb]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+Gold & \begin{tabular}[c]{@{}l@{}}"/" I/PRP had/VBD calls/NNS all/DT night/NN long/RB \\ from/IN the/DT States/NNP ,/, "/" he/PRP said/VBD ./.\end{tabular} \\ \hline
+Predicted & \begin{tabular}[c]{@{}l@{}}"/" I/PRP had/VBD calls/VBZ all/DT night/NN long/JJ \\  from/IN the/DT States/NNS ,/, "/" he/PRP said/VBD ./.\end{tabular} \\ \hline
+\end{tabular}
+\end{table}
+
+Thus, the overall accuracy in this case is (80\%), 12 out of 15 tokens are predicted correctly. This sentence was parsed by a model trained on a different corpus and TnT estimated that there are 13 known and 2 unknown tokens. It could predict 12 out of 13 known tokens correctly, but, it could not predict the unknown tokens correctly.
+
 \subsection{Dependency Parsing}
+
+In this thesis, I primarily report dependency parsing results based on the metrics - Labeled Attachment Scores (LAS), Unlabeled Attachment Scores (UAS) \& Exact Match(EM).
+
     \begin{itemize}
-        \item Labeled Attachment Scores (LAS): For evaluating the results of dependency parsing experiments in this chapter, I report LAS\footnote{I report micro-averaged LAS. Micro-averaged LAS is reported on words as opposed to macro-averaged LAS, which considers sentences as the grain.}.  As \ref{eq:las} shows, LAS estimates the number of words with correctly predicted head and label.
+        \item Labeled Attachment Scores (LAS): I report micro-averaged LAS. Micro-averaged LAS is reported on words as opposed to macro-averaged LAS, which considers sentences as the grain.  As \ref{eq:las} shows, LAS estimates the number of words with correctly predicted head and label.
         \begin{equation} \label{eq:las}
-            LAS = \frac{number\ of\ words\ with\ correct\ head\ and\ label}{total\ words}
+            %LAS = \frac{number\ of\ words\ with\ correct\ head\ and\ label}{total\ words}
+            LAS = \frac{Count({correct_{head \cap label}})}{\sum_{i=1}^{N} w_i}
         \end{equation}
+        
+        where the numerator represents the number of words with correct head and label while the denominator represents the total number of words. 
         
         \item Unlabeled Attachment Scores (UAS): UAS, as the name suggests, evaluates based on correctly predicted head. 
         \begin{equation} \label{eq:uas}
-            UAS = \frac{number\ of\ words\ with\ correct\ head}{total\ words}
+            %UAS = \frac{number\ of\ words\ with\ correct\ head}{total\ words}
+            UAS = \frac{Count({correct_{head}})}{\sum_{i=1}^{N} w_i}
         \end{equation}
+        
+        where the numerator represents the number of words with correct head while the denominator represents the total number of words. 
         
         \item Exact Match (EM): This metric determines how many sentences are parsed accurately by the parser.
         
     \end{itemize}
 
+%Consider the following example in table~\ref{tab:parser_exeval} which shows that the model trained on the WSJ data parses and produces the output parse indicated . 
+
+% \begin{table}[!htb]
+% \centering
+% \begin{tabular}{cccccc}
+% \begin{tabular}[c]{@{}c@{}}Token\\ Number\end{tabular} & Token & Head & \begin{tabular}[c]{@{}c@{}}Predicted\\ Head\end{tabular} & \begin{tabular}[c]{@{}c@{}}Dependency\\ Label\end{tabular} & \begin{tabular}[c]{@{}c@{}}Predicted\\ Dependency\\ Label\end{tabular} \\ \hline
+% 1 & " & 14 & 14 & P & P \\
+% 2 & I & 3 & 3 & SBJ & SBJ \\
+% 3 & had & 14 & 14 & OBJ & OBJ \\
+% 4 & calls & 3 & 3 & OBJ & OBJ \\
+% 5 & all & 6 & 6 & NMOD & NMOD \\
+% 6 & night & 7 & 4 & AMOD & OBJ \\
+% 7 & long & 3 & 4 & TMP & OPRD \\
+% 8 & from & 4 & 7 & NMOD & AMOD \\
+% 9 & the & 10 & 10 & NMOD & NMOD \\
+% 10 & States & 8 & 8 & PMOD & PMOD \\
+% 11 & , & 14 & 14 & P & P \\
+% 12 & " & 14 & 14 & P & P \\
+% 13 & he & 14 & 14 & SBJ & SBJ \\
+% 14 & said & 0 & 0 & ROOT & ROOT \\
+% 15 & . & 14 & 14 & P & P \\ \hline
+% \end{tabular}
+% \caption{An example of dependency parse result}\label{tab:parser_exeval}
+% \end{table}
+
+\begin{table}[!htb]
+\centering
+\begin{tabular}{llllll}
+\hline
+\begin{tabular}[c]{@{}l@{}}Token \\ Number\end{tabular} & Token & Head & \begin{tabular}[c]{@{}l@{}}Predicted\\ Head\end{tabular} & \begin{tabular}[c]{@{}l@{}}Dependency\\ Label\end{tabular} & \begin{tabular}[c]{@{}l@{}}Predicted\\ Dependency\\ Label\end{tabular} \\ \hline
+1 & " & 3 & 3 & P & P \\
+2 & I & 3 & 3 & SBJ & SBJ \\
+3 & was & 0 & 0 & ROOT & ROOT \\
+4 & woken & 3 & 3 & VC & VC \\
+5 & up & 4 & 4 & PRT & PRT \\
+6 & every & 7 & 7 & NMOD & NMOD \\
+7 & hour & 4 & 4 & OBJ & TMP \\
+8 & -- & 7 & 4 & P & P \\
+9 & 1:30 & 15 & 4 & NMOD & TMP \\
+10 & , & 15 & 9 & P & P \\
+11 & 2:30 & 15 & 9 & NMOD & APPO \\
+12 & , & 15 & 9 & P & P \\
+13 & 3:30 & 15 & 9 & NMOD & APPO \\
+14 & , & 15 & 9 & P & P \\
+15 & 4:30 & 7 & 9 & APPO & APPO \\
+16 & . & 3 & 3 & P & P \\ \hline
+\end{tabular}
+\caption{An example of dependency parse result}\label{tab:parser_exeval}
+\end{table}
+
+%  Sent.          Attachment      Correct        Scoring
+%     ID Tokens  -   Unlab. Lab.   HEAD HEAD+DEPREL   tokens   - - - -
+
+% 3   16    0   50.00  43.75     8       7          16    0 0 0 0
+
+Table~\ref{tab:parser_exeval} shows an example of the dependency parse output given by a parse model trained on the WSJ data. 
+As evident from the table~\ref{tab:parser_exeval}, out of a total of a 16 tokens in the sentence, 8 tokens have correctly predicted head, while 7 tokens show correct predictions for both head and dependency label. Thus, the labeled attachment score is 43.75\% while the unlabeled attachment score (UAS) is 50\%. This sentence is taken from a test corpus consisting of 836 sentences, out of which 226 sentences exhibits an LAS and UAS of 100\% i.e., correct prediction on the sentence level. Thus, exact match percent is computed as 27.03\%. 
+
 
 \section{Corpora}
 
-In this \atrcomments{section}, I elaborate on the corpora I used for the experiments conducted on domain adaptation for POS tagging and dependency parsing. I use three main corpora as a representative of their domains. I discuss these in detail in the next sections. In addition to classical domain adaptation, the goal is also to achieve a more generic form of domain adaptation, i.e., to evaluate if my system can detect domains in a heterogeneous or mixed dataset (see \atrcomments{chapter x}). Thus, I create an artificial corpus from the corpora, which contains equal representation of two domains. Although all the corpora used in this thesis are annotated in the PTB style, each has a distinctive syntactic style, which ... ~\todo{dont know how to finish this sentence}.
+In this \atrcomments{section}, I elaborate on the corpora I used for the experiments conducted on domain adaptation for POS tagging and dependency parsing. I use three main corpora as a representative of their domains. I discuss these in detail in the next sections. In addition to classical domain adaptation, the goal is also to achieve a more generic form of domain adaptation, i.e., to evaluate if my system can detect domains in a heterogeneous or mixed dataset (see section~\ref{sec:wsjgeniamixedcorpus}). Thus, I create an artificial corpus from the corpora, which contains equal representation of two domains. Although all the corpora used in this thesis are annotated in the PTB style, each has a distinctive syntactic style, which ... ~\todo{dont know how to finish this sentence}.
 
 %Since the goal is domain adaptation, the corpora used for the experiments need to be reasonably diverse. 
   
@@ -553,7 +668,7 @@ In this \atrcomments{section}, I elaborate on the corpora I used for the experim
 
 ~\todo{check!!}
 \footnote{https://catalog.ldc.upenn.edu/LDC2000T43}
-This is the Wall Street Journal section~\citep{Marcus:1994:PTA:1075812.1075835} of the Penn Treebank~\citep{santorini:90}. \textcolor{red}{This corpus contains annotated newspaper articles from WSJ from 1987 - 1989. The corpus is annotated for POS tags and parsed in PTB bracketed style. The dependency trees are then derived using the Penn Converter Tool~\citep{johansson2007a} and the inconsistencies are addressed manually}. I use this corpus as a representative of the newspaper domains. There are various different kinds of news articles from financial news, theater critique, weather, sports, politics, etc. Thus, in addition to contributing as a main domain, we can also exploit the corpus for micro-genres or more fine-grained domains. The sentences in WSJ are reasonably longer with an average length of 24 words. I use the standard split for parsing, which is, 02-21 for training, 22 for test and 23 for validation. Some of the example sentences from WSJ are as given below.  ~\todo{EXAMPLES}
+This is the Wall Street Journal section~\citep{Marcus:1994:PTA:1075812.1075835} of the Penn Treebank~\citep{santorini:90}. \textcolor{red}{This corpus contains annotated newspaper articles from WSJ from 1987 - 1989. The corpus is annotated for POS tags and parsed in PTB bracketed style. The dependency trees are then derived using the Penn Converter Tool~\citep{johansson2007a} and the inconsistencies are addressed manually}. I use this corpus as a representative of the newspaper domains. There are various different kinds of news articles from financial news, theater critique, weather, sports, politics, etc. Thus, in addition to contributing as a main domain, we can also exploit the corpus for micro-genres or more fine-grained domains. The sentences in WSJ are reasonably longer with an average length of 24 words. I use the standard split for parsing, which is, 02-21 for training, 22 for test and 23 for validation. Some of the example sentences from WSJ are as given below.  
 \begin{itemize}
     \item In an Oct. 19 review of " The Misanthrope " at Chicago 's Goodman Theatre ( " Revitalized Classics Take the Stage in Windy City , " Leisure & Arts ) , the role of Celimene , played by Kim Cattrall , was mistakenly attributed to Christina Haag .
     \item Japanese culture vs. American culture is irrelevant .
@@ -575,7 +690,7 @@ The GENIA Corpus~\citep{tateisi:tsujii:04} comprises of biomedical abstracts fro
 \subsection{CReST Corpus}
 
 The CReST corpus~\citep{eberhard2010indiana} constitutes of natural language dialogues between two individuals performing a ``cooperative, remote, search task" (CReST). This is a multimodal corpus which is annotated for speech signals and their corresponding transcriptions. The transcribed text is annotated in PTB format for constituent trees. These constituent trees are converted to dependency trees using Penn Converter~\citep{johansson2007a}. Since this is transcribed from spoken dialogues, the average length of sentence is 7. In terms of linguistic factors, CReST has a subset of WSJ's dependency labels with 10 new labels added. A few examples of the CReST corpus are given below:
-\todo{EXAMPLES}
+
 
 \begin{itemize}
     \item um to the right like right at the edge is

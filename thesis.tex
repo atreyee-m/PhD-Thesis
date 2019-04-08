@@ -18,6 +18,7 @@
 
 
 \usepackage{enumitem}
+\usepackage{calc}
 %\usepackage{listings}
 %\usepackage{comment}
 \usepackage{color,soul}
@@ -70,6 +71,9 @@
 
 \usepackage{lastpage}
 \usepackage{xcolor}
+%\usepackage{lmodern} 
+\usepackage{titlesec}
+
 
 
 \setcounter{secnumdepth}{4}
@@ -83,6 +87,12 @@
 % \usepackage[rgb]{xcolor}
 % \usepackage[author={Atreyee}]{pdfcomment}
 
+\titleformat{\subsubsection}
+       {\normalfont\fontfamily{phv}\fontsize{12}{17}\bfseries\itshape}{\thesubsubsection}{1em}{}
+
+
+
+\algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
 \newcommand{\etal}{\textit{et al}.}
 
 \newcommand{\hlcyan}[1]{{\sethlcolor{cyan}\hl{#1}}}

@@ -4,10 +4,10 @@
 
 \section{Introduction}
 
-POS tagging and dependency parsing results can be considerably poor for out-of-domain/heterogeneous datasets. This means that a tagger/parser trained on a homogeneous dataset, e.g., Penn Treebank works reliably well on a similar dataset but fails to achieve similar results for heterogeneous datasets. In the previous chapter, I approached this problem by creating genre/domain experts using topic modeling: I use Latent Dirichlet Allocation (LDA)~\citep{Blei:2003:LDA:944919.944937,Blei:2012:PTM:2133806.2133826} for an unsupervised clustering of  sentences into topics. The assumption is that these topics correspond to genres. We observed that the topic modeler models the split into genres in a very similar way to the original split, with error rates around 2\%. I then train one expert per topic. I.e., I train the expert on all the training sentences that were assigned to the corresponding topic. 
+POS tagging and dependency parsing may not perform reasonably well for out-of-domain/ heterogeneous datasets. This means that a tagger/parser trained on a homogeneous dataset, e.g., Penn Treebank works reliably well on a similar dataset but fails to achieve similar results for heterogeneous datasets. In the previous chapter, I approached this problem by creating genre/domain experts using topic modeling: I use Latent Dirichlet Allocation (LDA)~\citep{Blei:2003:LDA:944919.944937,Blei:2012:PTM:2133806.2133826} for an unsupervised clustering of  sentences into topics. The assumption is that these topics correspond to genres. We observed that the topic modeler models the split into genres in a very similar way to the original split, with error rates around 2\%. I then train one expert per topic. I.e., I train the expert on all the training sentences that were assigned to the corresponding topic. 
 %During testing, I assign test sentences to topics, which means that they are POS tagged and parsed by the corresponding expert.  I tested the approach on an artificial, heterogeneous corpus, consisting of a balanced mix of sentences from the WSJ portion of the Penn Treebank (financial news)~\citep{marcus:kim:ea:94} and from the GENIA corpus (biomedical abstracts)~\citep{tateisi:tsujii:04}. For POS tagging, there is a moderate increase in performance over a competitive baseline of training on the full training set, and a considerable increase for dependency parsing.
-However, assigning test sentences to the relevant training topic experts is handled in the simplest possible way: I perform topic modeling on the combination of training and test data due to the non-parametric nature of the algorithm. %Since topic modeling clusters the data but does not create a predictive model, we cannot assign sentences to topics after the initial clustering. 
-This means that each time a new test sentence is encountered, the topic modeler is rerun to consistently determine the appropriate genres across training and test sentences. In order to avoid retraining, I propose to use similarity estimation techniques to determine which genre the test sentence belongs to. In this setup, I only create the experts once, and then assign new sentences to genres in an asynchronous fashion. 
+However, assigning test sentences to the relevant training topic experts is handled in the simplest possible way: I perform topic modeling on the combination of training and test data due to the non-parametric nature of the algorithm. Since topic modeling clusters the data but does not create a predictive model, we cannot assign sentences to topics after the initial clustering. 
+This means that each time a new test sentence is encountered, the topic modeler would need to be rerun to consistently determine the appropriate genres across training and test sentences. In order to avoid retraining, I propose to use similarity estimation techniques to determine which genre the test sentence belongs to. In this setup, I only create the experts once with the training data, and then assign new sentences to genres in an asynchronous fashion. 
 For a new test sentence, I evaluate the similarity of the test sentence to the sentences of a genre and then assign it to the expert with the highest similarity score. I investigate a range of different techniques, based on 1) words closely associated with a topic by the LDA, 2) $k$-nearest neighbors, or 3) perplexity models to estimate the similarity. 
 
 %\atrcomments{needed?}The results indicate that for word based similarity metrics reach results very similar to the joint topic modeling approach, thus proving the feasibility of an asynchronous approach. In the case of unigram-based perplexity, parsing accuracy even surpasses the joint modeling approach.
@@ -17,8 +17,9 @@ The remainder of this chapter is structured as follows: \atrcomments{TBD}
  
 \section{Research Questions}
 
-I demonstrated the usefulness of using POS tagging and parsing experts in the previous chapter. However, assignment of sentences to experts is not automated. In this chapter, I address this issue by automatically assigning sentences to the corresponding experts. In other words, I primarily focus on the following:
-\begin{enumerate} [label=\textbf{Question \arabic*:},align=left]
+I demonstrated the usefulness of using POS tagging and parsing experts in the previous chapter. %However, assignment of sentences to experts is not automated. 
+In this chapter, I address this issue by automatically assigning sentences to the corresponding experts. In other words, I primarily focus on the following:
+\begin{enumerate} [label=\textbf{Question \arabic*:},align=left, leftmargin=!]
 
     \item \textbf{How do we assign sentences to domain/genre experts?}
     
@@ -174,7 +175,7 @@ Gain ratio can be represented as following:
 
 
 %\item : Another obvious choice for determining the similarity of a sentence to a set of sentences is language modeling.  I calculate the perplexity of a test sentence with regard to set of sentences of an expert. I then assign a sentence to the expert for which it has the lowest perplexity. 
-\subsection{Language Model Perplexity} 
+\subsubsection{Language Model Perplexity} 
 
 As the third set of methods, I turn to language modeling and use perplexity as a measure to determine the similarity. I have two training experts, specializing in both domains in question. I calculate the perplexity of a test sentence to the experts. I then assign this test sentence to the expert which exhibits lower perplexity. I estimate unigram, bigram and trigram perplexity. I explain the concept in details below. I derive $n$-grams  of the training experts with additive smoothing using NLTK~\citep{loper2002nltk}, and compute the perplexity of the training experts to a test sentence
 
